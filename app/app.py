@@ -1,6 +1,6 @@
 import datetime
 from enum import Enum
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union, Tuple
 
 from flask import Flask, request
 from dotenv import load_dotenv
@@ -16,45 +16,51 @@ class KeyType(Enum):
     ACTOR = 2
 
 
-USER_DB = {
-    '0001': {'actor_ids': ['abcd']},
-    '0002': {'actor_ids': ['efgh']},
-    '0003': {'actor_ids': ['abcd', 'efgh']},
-}
+USER_DB = None
+# USER_DB = {
+#    '0001': {'actor_ids': ['abcd']},
+#    '0002': {'actor_ids': ['efgh']},
+#    '0003': {'actor_ids': ['abcd', 'efgh']},
+# }
 
-KEY_DB = {
-    '052b3945b6913a005c74c52d0a2c48cfc7c10207db775d51950a21bc12dcc472': {
-        'type': KeyType.USER,
-        'ref_id': '0001',
-    },
-    '781bd77d28bf4c53e13719136180dcef2d54c75b37b8a3553339859255731d9d': {
-        'type': KeyType.USER,
-        'ref_id': '0002',
-    },
-    '8c267d03891a23661ec3e89dbed546297cb86bae05d4767ff01cc0b1616d3499': {
-        'type': KeyType.USER,
-        'ref_id': '0002',
-    },
-    '9a9893b036fd1708c518467a203de7405184feff1c2eb315ee8099cd8fedab58': {
-        'type': KeyType.ACTOR,
-        'ref_id': 'abcd',
-    },
-    'f160e336939ee5b8ed3206962c488fc5be3f6e35a3ca92fc170e80657958bda3': {
-        'type': KeyType.ACTOR,
-        'ref_id': 'efgh',
-    },
-}
+KEY_DB = None
 
-ACTOR_DB = {
-    'abcd': {'name': 'door street', 'timeout': 5},
-    'efgh': {'name': 'door flat', 'timeout': 5},
-}
+# KEY_DB = {
+#     '052b3945b6913a005c74c52d0a2c48cfc7c10207db775d51950a21bc12dcc472': {
+#         'type': KeyType.USER,
+#         'ref_id': '0001',
+#     },
+#     '781bd77d28bf4c53e13719136180dcef2d54c75b37b8a3553339859255731d9d': {
+#         'type': KeyType.USER,
+#         'ref_id': '0002',
+#     },
+#     '8c267d03891a23661ec3e89dbed546297cb86bae05d4767ff01cc0b1616d3499': {
+#         'type': KeyType.USER,
+#         'ref_id': '0002',
+#     },
+#     '9a9893b036fd1708c518467a203de7405184feff1c2eb315ee8099cd8fedab58': {
+#         'type': KeyType.ACTOR,
+#         'ref_id': 'abcd',
+#     },
+#     'f160e336939ee5b8ed3206962c488fc5be3f6e35a3ca92fc170e80657958bda3': {
+#         'type': KeyType.ACTOR,
+#         'ref_id': 'efgh',
+#     },
+# }
 
-STATE_DB = {
-    'abcd': {'last_on': None},
-    'efgh': {'last_on': None},
-}
+ACTOR_DB = None
+# ACTOR_DB = {
+#    'abcd': {'name': 'door street', 'timeout': 5},
+#    'efgh': {'name': 'door flat', 'timeout': 5},
+# }
 
+STATE_DB = None
+
+
+# STATE_DB = {
+#    'abcd': {'last_on': None},
+#    'efgh': {'last_on': None},
+# }
 
 def state_db() -> Dict[str, dict]:
     global STATE_DB
@@ -84,53 +90,111 @@ def user_db() -> Dict[str, dict]:
     return USER_DB
 
 
-def get_actor_state(actor_id: str) -> bool:
-    if actor_id not in actor_db() or actor_id not in state_db():
-        return False
+def get_actor_state(actor_id: str) -> Tuple[int, bool]:
+    if actor_id not in actor_db():
+        return 400, False
+    elif actor_id not in state_db():
+        return 200, False
     else:
         if state_db()[actor_id]['last_on'] is None:
-            return False
+            return 200, False
         else:
-            return datetime.datetime.now() < state_db()[actor_id]['last_on'] + datetime.timedelta(
+            print(f"## {state_db()[actor_id]['last_on'] - datetime.timedelta(seconds=2)}")
+            print(f"## {datetime.datetime.now()}")
+            print(f"## {state_db()[actor_id]['last_on'] + datetime.timedelta(seconds=actor_db()[actor_id]['timeout'])}")
+            print(f"\n")
+            print(f"### {state_db()[actor_id]['last_on'] - datetime.timedelta(
+                seconds=2) < datetime.datetime.now() < state_db()[actor_id]['last_on'] + datetime.timedelta(
+                seconds=actor_db()[actor_id]['timeout'])}")
+            return 200, state_db()[actor_id]['last_on'] - datetime.timedelta(
+                seconds=2) < datetime.datetime.now() < state_db()[actor_id]['last_on'] + datetime.timedelta(
                 seconds=actor_db()[actor_id]['timeout'])
 
 
-def set_actor_state(actor_id: str) -> bool:
+def sanitize_state_db() -> None:
+    for k, v in state_db().items():
+        if 'last_on' in v:
+            if v['last_on'] is None:
+                continue
+            elif v['last_on'] + datetime.timedelta(seconds=2) > datetime.datetime.now():
+                state_db()[k]['last_on'] = None
+
+
+def set_actor_state(actor_id: str) -> int:
     if actor_id not in actor_db():
-        return False
+        return 400
     else:
+        if actor_id not in state_db():
+            state_db()[actor_id] = {'last_on': None}
         state_db()[actor_id]['last_on'] = datetime.datetime.now()
-        return True
+        return 200
 
 
-def check_key(key: str) -> bool:
+def log(msg: str):
+    print(msg)
+
+
+def set_state(actors: List[str], key: str) -> Tuple[int, dict]:
     if key not in keys_db():
-        return False
+        log(f'key "{key}" not found')
+        return 400, {'msg': 'permission denied'}
     else:
-        if 'type' not in keys_db()[key] or 'ref_id' not in keys_db()[key]:
-            return False
+        if 'type' not in keys_db()[key]:
+            log(f'db error: "type" not found in keys_db()[key]: "{keys_db()[key]}"')
+            return 403, {'msg': 'db error'}
+        elif 'ref_id' not in keys_db()[key]:
+            log(f'db error: "ref_id" not found in keys_db()[key]: "{keys_db()[key]}"')
+            return 403, {'msg': 'db error'}
         else:
             key_type = keys_db()[key]['type']
             ref_id = keys_db()[key]['ref_id']
-            if key_type == KeyType.USER:
-                if ref_id not in user_db:
-                    return False
-                else:
-                    if 'actor_ids' not in user_db()[ref_id]['actor_ids']:
-                        return False
-                    else:
-                        actor_ids = user_db()[ref_id]['actor_ids']
-                        for actor_id in actor_ids:
-                            set_actor_state(actor_id)
-                        return True
-            elif key_type == KeyType.ACTOR:
-                if ref_id not in actor_db:
-                    return False
-                else:
-                    get_actor_state(ref_id)
-                pass
+            if key_type != KeyType.USER or ref_id not in user_db():
+                return 400, {'msg': 'permission denied'}
             else:
-                return False
+                msg = {}
+                for actor_id in actors:
+                    msg[actor_id] = set_actor_state(actor_id)
+                return 200, msg
+
+
+COUNTER = 0
+
+
+def check_and_increment(interval: int = 10, max_val: int = 100000, inc: int = 1):
+    global COUNTER
+    result = False
+    if COUNTER % interval == 0:
+        result = True
+
+    COUNTER += 1
+    if COUNTER > max_val:
+        COUNTER = 0
+
+    return result
+
+
+def get_state(actor_id_list: List[str], key: str) -> Tuple[int, dict]:
+    if check_and_increment():
+        sanitize_state_db()
+    if not isinstance(actor_id_list, list):
+        return 400, {'msg': 'actor ids not a list'}
+    if key not in keys_db():
+        log(f'key "{key}" not found')
+        return 400, {'msg': 'permission denied'}
+    else:
+        if 'type' not in keys_db()[key]:
+            log(f'db error: "type" not found in keys_db()[key]: "{keys_db()[key]}"')
+            return 403, {'msg': 'db error'}
+        elif 'ref_id' not in keys_db()[key]:
+            log(f'db error: "ref_id" not found in keys_db()[key]: "{keys_db()[key]}"')
+            return 403, {'msg': 'db error'}
+        else:
+            key_type = keys_db()[key]['type']
+            ref_id = keys_db()[key]['ref_id']
+            if key_type != KeyType.ACTOR or ref_id not in actor_db():
+                return 400, {'msg': 'permission denied'}
+            else:
+                return 200, {actor_id: get_actor_state(actor_id) for actor_id in actor_id_list}
 
 
 @app.route('/')
@@ -138,12 +202,25 @@ def root():
     return 'None'
 
 
-@app.route('/api/doorOpener', methods=['GET'])
-def door_opener():
-    if request.args.get('key') is None:
+@app.route('/api/setDoorState', methods=['GET'])
+def set_door_state():
+    if request.args.get('actors') is None:
+        return 'Actor ID not found'
+    elif request.args.get('key') is None:
         return 'Key not found'
     else:
-        result = check_key(request.args.get('key'))
+        result = set_state(request.args.get('actors'), request.args.get('key'))
+    return 'Door opened'
+
+
+@app.route('/api/getDoorState', methods=['GET'])
+def get_door_state():
+    if request.args.get('actors') is None:
+        return 'Actor ID not found'
+    elif request.args.get('key') is None:
+        return 'Key not found'
+    else:
+        result = get_state(request.args.get('actors'), request.args.get('key'))
     return 'Door opened'
 
 
