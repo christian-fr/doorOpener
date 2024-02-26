@@ -128,7 +128,7 @@ def check_and_increment(interval: int = 10, max_val: int = 100000, inc: int = 1)
     if COUNTER % interval == 0:
         result = True
 
-    COUNTER += 1
+    COUNTER += inc
     if COUNTER > max_val:
         COUNTER = 0
 
@@ -191,7 +191,7 @@ def create_app(config_class=Config):
             )
         else:
             try:
-                actors_list = json.loads(request.args.get('actors'))
+                _ = json.loads(request.args.get('actors'))
             except JSONDecodeError:
                 log(f'JSONDecodeError while handling actors string: {dict(request.args)}')
                 return app.response_class(
@@ -223,7 +223,7 @@ def create_app(config_class=Config):
             )
         else:
             try:
-                actors_list = json.loads(request.args.get('actors'))
+                _ = json.loads(request.args.get('actors'))
             except JSONDecodeError:
                 log(f'JSONDecodeError while handling actors string: {dict(request.args)}')
                 return app.response_class(

@@ -1,10 +1,9 @@
-import json
 import datetime
 from unittest import TestCase
 
 from flask import Config
 
-from app import create_app, state_db, user_db, actor_db, keys_db, KeyType, now
+from app import create_app, state_db, user_db, actor_db, keys_db, KeyType
 from tests.test_fns import KEY_USER0001, KEY_USER0002, KEY_USER0003, KEY_ACTOR1, KEY_ACTOR2
 from tests.util.mock_datetime import mock_datetime_now
 
