@@ -10,14 +10,15 @@ load_dotenv()
 app = Flask(__name__)
 
 
-#def now():
-#    return datetime.datetime.now()
+def now():
+    return datetime.datetime.now()
 
 
 class KeyType(Enum):
     NONE = 0
     USER = 1
     ACTOR = 2
+    ADMIN = 3
 
 
 USER_DB = None
@@ -208,6 +209,17 @@ def root():
 
 @app.route('/api/setDoorState', methods=['GET'])
 def set_door_state():
+    if request.args.get('actors') is None:
+        return 'Actor ID not found'
+    elif request.args.get('key') is None:
+        return 'Key not found'
+    else:
+        result = set_state(request.args.get('actors'), request.args.get('key'))
+    return 'Door opened'
+
+
+@app.route('/api/createUser', methods=['GET'])
+def create_user():
     if request.args.get('actors') is None:
         return 'Actor ID not found'
     elif request.args.get('key') is None:

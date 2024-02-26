@@ -28,7 +28,7 @@ KEY_USER0002 = '781bd77d28bf4c53e13719136180dcef2d54c75b37b8a3553339859255731d9d
 KEY_USER0003 = '8c267d03891a23661ec3e89dbed546297cb86bae05d4767ff01cc0b1616d3499'
 
 
-class ApiTest(TestCase):
+class ApiFunctionsTest(TestCase):
     def setUp(self):
         keys_db().clear()
         user_db().clear()
