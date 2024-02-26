@@ -1,13 +1,8 @@
 import datetime
 from enum import Enum
-from typing import List, Dict, Optional, Union, Tuple
+from typing import List, Dict, Tuple
 
-from flask import Flask, request
-from dotenv import load_dotenv
-
-load_dotenv()
-
-app = Flask(__name__)
+from flask import Flask, request, Config
 
 
 def now():
@@ -22,50 +17,10 @@ class KeyType(Enum):
 
 
 USER_DB = None
-# USER_DB = {
-#    '0001': {'actor_ids': ['abcd']},
-#    '0002': {'actor_ids': ['efgh']},
-#    '0003': {'actor_ids': ['abcd', 'efgh']},
-# }
-
 KEY_DB = None
-
-# KEY_DB = {
-#     '052b3945b6913a005c74c52d0a2c48cfc7c10207db775d51950a21bc12dcc472': {
-#         'type': KeyType.USER,
-#         'ref_id': '0001',
-#     },
-#     '781bd77d28bf4c53e13719136180dcef2d54c75b37b8a3553339859255731d9d': {
-#         'type': KeyType.USER,
-#         'ref_id': '0002',
-#     },
-#     '8c267d03891a23661ec3e89dbed546297cb86bae05d4767ff01cc0b1616d3499': {
-#         'type': KeyType.USER,
-#         'ref_id': '0002',
-#     },
-#     '9a9893b036fd1708c518467a203de7405184feff1c2eb315ee8099cd8fedab58': {
-#         'type': KeyType.ACTOR,
-#         'ref_id': 'abcd',
-#     },
-#     'f160e336939ee5b8ed3206962c488fc5be3f6e35a3ca92fc170e80657958bda3': {
-#         'type': KeyType.ACTOR,
-#         'ref_id': 'efgh',
-#     },
-# }
-
 ACTOR_DB = None
-# ACTOR_DB = {
-#    'abcd': {'name': 'door street', 'timeout': 5},
-#    'efgh': {'name': 'door flat', 'timeout': 5},
-# }
-
 STATE_DB = None
 
-
-# STATE_DB = {
-#    'abcd': {'last_on': None},
-#    'efgh': {'last_on': None},
-# }
 
 def state_db() -> Dict[str, dict]:
     global STATE_DB
@@ -202,43 +157,53 @@ def get_state(actor_id_list: List[str], key: str) -> Tuple[int, dict]:
                 return 200, {actor_id: get_actor_state(actor_id) for actor_id in actor_id_list}
 
 
-@app.route('/')
-def root():
-    return 'None'
+def create_app(config_class=Config):
+    app = Flask(__name__)
+    app.config.from_object(config_class)
 
+    # # Register blueprints here
+    # from app.main import bp as main_bp
+    # app.register_blueprint(main_bp)
 
-@app.route('/api/setDoorState', methods=['GET'])
-def set_door_state():
-    if request.args.get('actors') is None:
-        return 'Actor ID not found'
-    elif request.args.get('key') is None:
-        return 'Key not found'
-    else:
-        result = set_state(request.args.get('actors'), request.args.get('key'))
-    return 'Door opened'
+    # with app.app_context():
+    #     db.create_all()
 
+    @app.route('/')
+    def root():
+        return 'None'
 
-@app.route('/api/createUser', methods=['GET'])
-def create_user():
-    if request.args.get('actors') is None:
-        return 'Actor ID not found'
-    elif request.args.get('key') is None:
-        return 'Key not found'
-    else:
-        result = set_state(request.args.get('actors'), request.args.get('key'))
-    return 'Door opened'
+    @app.route('/api/setDoorState', methods=['GET'])
+    def set_door_state():
+        if request.args.get('actors') is None:
+            return 'Actor ID not found'
+        elif request.args.get('key') is None:
+            return 'Key not found'
+        else:
+            result = set_state(request.args.get('actors'), request.args.get('key'))
+        return 'Door opened'
 
+    @app.route('/api/createUser', methods=['GET'])
+    def create_user():
+        if request.args.get('actors') is None:
+            return 'Actor ID not found'
+        elif request.args.get('key') is None:
+            return 'Key not found'
+        else:
+            result = set_state(request.args.get('actors'), request.args.get('key'))
+        return 'Door opened'
 
-@app.route('/api/getDoorState', methods=['GET'])
-def get_door_state():
-    if request.args.get('actors') is None:
-        return 'Actor ID not found'
-    elif request.args.get('key') is None:
-        return 'Key not found'
-    else:
-        result = get_state(request.args.get('actors'), request.args.get('key'))
-    return 'Door opened'
+    @app.route('/api/getDoorState', methods=['GET'])
+    def get_door_state():
+        if request.args.get('actors') is None:
+            return 'Actor ID not found'
+        elif request.args.get('key') is None:
+            return 'Key not found'
+        else:
+            result = get_state(request.args.get('actors'), request.args.get('key'))
+        return 'Door opened'
+
+    return app
 
 
 if __name__ == '__main__':
-    app.run()
+    create_app(config_class=Config).run()
