@@ -10,6 +10,10 @@ load_dotenv()
 app = Flask(__name__)
 
 
+#def now():
+#    return datetime.datetime.now()
+
+
 class KeyType(Enum):
     NONE = 0
     USER = 1
@@ -100,14 +104,14 @@ def get_actor_state(actor_id: str) -> Tuple[int, bool]:
             return 200, False
         else:
             print(f"## {state_db()[actor_id]['last_on'] - datetime.timedelta(seconds=2)}")
-            print(f"## {datetime.datetime.now()}")
+            print(f"## {now()}")
             print(f"## {state_db()[actor_id]['last_on'] + datetime.timedelta(seconds=actor_db()[actor_id]['timeout'])}")
             print(f"\n")
             print(f"### {state_db()[actor_id]['last_on'] - datetime.timedelta(
-                seconds=2) < datetime.datetime.now() < state_db()[actor_id]['last_on'] + datetime.timedelta(
+                seconds=2) < now() < state_db()[actor_id]['last_on'] + datetime.timedelta(
                 seconds=actor_db()[actor_id]['timeout'])}")
             return 200, state_db()[actor_id]['last_on'] - datetime.timedelta(
-                seconds=2) < datetime.datetime.now() < state_db()[actor_id]['last_on'] + datetime.timedelta(
+                seconds=2) < now() < state_db()[actor_id]['last_on'] + datetime.timedelta(
                 seconds=actor_db()[actor_id]['timeout'])
 
 
@@ -116,7 +120,7 @@ def sanitize_state_db() -> None:
         if 'last_on' in v:
             if v['last_on'] is None:
                 continue
-            elif v['last_on'] + datetime.timedelta(seconds=2) > datetime.datetime.now():
+            elif v['last_on'] + datetime.timedelta(seconds=2) > now():
                 state_db()[k]['last_on'] = None
 
 
@@ -126,7 +130,7 @@ def set_actor_state(actor_id: str) -> int:
     else:
         if actor_id not in state_db():
             state_db()[actor_id] = {'last_on': None}
-        state_db()[actor_id]['last_on'] = datetime.datetime.now()
+        state_db()[actor_id]['last_on'] = now()
         return 200
 
 
