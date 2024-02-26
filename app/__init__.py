@@ -9,7 +9,11 @@ from flask import Flask, request, Config
 
 
 def now():
-    return datetime.datetime.now()
+    return datetime.datetime.now(tz=datetime.timezone.utc)
+
+
+TS_MIN = datetime.datetime(1, 1, 1, 0, 0, 0, 0, tzinfo=datetime.timezone.utc)
+TS_MAX = datetime.datetime(9999, 12, 31, 0, 0, 0, 0, tzinfo=datetime.timezone.utc)
 
 
 class Role(Enum):
@@ -25,11 +29,30 @@ class KeyType(Enum):
     ACTOR = 2
     ADMIN = 3
 
+    def __getitem__(self, item):
+        raise NotImplementedError()
+
 
 USER_DB = None
 KEY_DB = None
-ACTOR_DB = None
+# ACTOR_DB = None
 STATE_DB = None
+VALID_DB = None
+PERMISSION_DB = None
+
+
+def permission_db() -> Dict[str, dict]:
+    global PERMISSION_DB
+    if PERMISSION_DB is None:
+        PERMISSION_DB = {}
+    return PERMISSION_DB
+
+
+def valid_db() -> Dict[str, dict]:
+    global VALID_DB
+    if VALID_DB is None:
+        VALID_DB = {}
+    return VALID_DB
 
 
 def state_db() -> Dict[str, dict]:
@@ -39,11 +62,11 @@ def state_db() -> Dict[str, dict]:
     return STATE_DB
 
 
-def actor_db() -> Dict[str, dict]:
-    global ACTOR_DB
-    if ACTOR_DB is None:
-        ACTOR_DB = {}
-    return ACTOR_DB
+# def actor_db() -> Dict[str, dict]:
+#     global ACTOR_DB
+#     if ACTOR_DB is None:
+#         ACTOR_DB = {}
+#     return ACTOR_DB
 
 
 def keys_db() -> Dict[str, dict]:
@@ -60,25 +83,25 @@ def user_db() -> Dict[str, dict]:
     return USER_DB
 
 
-def get_actor_state(actor_id: str) -> Tuple[int, bool]:
-    if actor_id not in actor_db():
+def get_actor_state(user_id: str) -> Tuple[int, bool]:
+    if user_id not in user_db():
         return 400, False
-    elif actor_id not in state_db():
+    elif user_id not in state_db():
         return 200, False
     else:
-        if state_db()[actor_id]['last_on'] is None:
+        if state_db()[user_id]['last_on'] is None:
             return 200, False
         else:
-            print(f"## {state_db()[actor_id]['last_on'] - datetime.timedelta(seconds=2)}")
-            print(f"## {now()}")
-            print(f"## {state_db()[actor_id]['last_on'] + datetime.timedelta(seconds=actor_db()[actor_id]['timeout'])}")
-            print(f"\n")
-            print(f"### {state_db()[actor_id]['last_on'] - datetime.timedelta(
-                seconds=2) < now() < state_db()[actor_id]['last_on'] + datetime.timedelta(
-                seconds=actor_db()[actor_id]['timeout'])}")
-            return 200, state_db()[actor_id]['last_on'] - datetime.timedelta(
-                seconds=2) < now() < state_db()[actor_id]['last_on'] + datetime.timedelta(
-                seconds=actor_db()[actor_id]['timeout'])
+            #print(f"## {state_db()[user_id]['last_on'] - datetime.timedelta(seconds=2)}")
+            #print(f"## {now()}")
+            #print(f"## {state_db()[user_id]['last_on'] + datetime.timedelta(seconds=user_db()[user_id]['timeout'])}")
+            #print(f"\n")
+            #print(f"### {state_db()[user_id]['last_on'] - datetime.timedelta(
+            #    seconds=2) < now() < state_db()[user_id]['last_on'] + datetime.timedelta(
+            #    seconds=user_db()[user_id]['timeout'])}")
+            return 200, state_db()[user_id]['last_on'] - datetime.timedelta(
+                seconds=2) < now() < state_db()[user_id]['last_on'] + datetime.timedelta(
+                seconds=user_db()[user_id]['timeout'])
 
 
 def sanitize_state_db() -> None:
@@ -90,13 +113,13 @@ def sanitize_state_db() -> None:
                 state_db()[k]['last_on'] = None
 
 
-def set_actor_state(actor_id: str) -> int:
-    if actor_id not in actor_db():
+def set_actor_state(user_id: str) -> int:
+    if user_id not in user_db():
         return 400
     else:
-        if actor_id not in state_db():
-            state_db()[actor_id] = {'last_on': None}
-        state_db()[actor_id]['last_on'] = now()
+        if user_id not in state_db():
+            state_db()[user_id] = {'last_on': None}
+        state_db()[user_id]['last_on'] = now()
         return 200
 
 
@@ -104,27 +127,52 @@ def log(msg: str):
     print(msg)
 
 
-def set_state(actors: List[str], key: str) -> Tuple[int, dict]:
+def check_valid(user_id: str) -> bool:
+    valid_intervals = [(v['from'] if v['from'] is not None else TS_MIN, v['to'] if v['to'] is not None else TS_MAX) for
+                       v in valid_db().values() if v['user_id'] == user_id]
+    for start, end in valid_intervals:
+        if start < now() < end:
+            return True
+    return False
+
+
+def get_all_actors(user_id: str, mode: str) -> List[str]:
+    if set(mode) not in [set('r'), set('w'), set('rw')]:
+        log(f'Invalid mode: {mode}')
+        return []
+    return [v['actor_id'] for v in permission_db().values() if v['user_id'] == user_id and v['mode'] == mode]
+
+
+def set_state(actor_id_list: List[str], key: str) -> Tuple[int, dict]:
     if key not in keys_db():
         log(f'key "{key}" not found')
         return 400, {'msg': 'permission denied'}
     else:
-        if 'type' not in keys_db()[key]:
-            log(f'db error: "type" not found in keys_db()[key]: "{keys_db()[key]}"')
-            return 403, {'msg': 'db error'}
-        elif 'ref_id' not in keys_db()[key]:
-            log(f'db error: "ref_id" not found in keys_db()[key]: "{keys_db()[key]}"')
+        if 'user_id' not in keys_db()[key]:
+            log(f'db error: "user_id" not found in keys_db()[{key}]: "{keys_db()[key]}"]')
             return 403, {'msg': 'db error'}
         else:
-            key_type = keys_db()[key]['type']
-            ref_id = keys_db()[key]['ref_id']
-            if key_type != KeyType.USER or ref_id not in user_db():
-                return 400, {'msg': 'permission denied'}
+            user_id = keys_db()[key]['user_id']
+            if user_id not in user_db():
+                log(f'unknown user id: "user_id" not found in {user_db()=}')
+                return 403, {'msg': 'db error'}
             else:
-                msg = {}
-                for actor_id in actors:
-                    msg[actor_id] = set_actor_state(actor_id)
-                return 200, msg
+                if not 'role' in user_db()[user_id]:
+                    log(f'db error: "type" not in {user_db()[user_id]=}"]')
+                    return 403, {'msg': 'db error'}
+                else:
+                    if user_db()[user_id]['role'] in [Role.USER]:
+                        if check_valid(user_id):
+                            msg = {}
+                            for actor_id in get_all_actors(user_id, 'w'):
+                                if actor_id not in actor_id_list:
+                                    continue
+                                else:
+                                    msg[actor_id] = set_actor_state(actor_id)
+                            return 200, msg
+                    else:
+                        log(f'db error: unallowed role: {user_db()[user_id]['role']=}')
+                        return 403, {'msg': 'db error'}
 
 
 COUNTER = 0
@@ -202,19 +250,36 @@ def get_state(actor_id_list: List[str], key: str) -> Tuple[int, dict]:
         log(f'key "{key}" not found')
         return 400, {'msg': 'permission denied'}
     else:
-        if 'type' not in keys_db()[key]:
-            log(f'db error: "type" not found in keys_db()[key]: "{keys_db()[key]}"')
-            return 403, {'msg': 'db error'}
-        elif 'ref_id' not in keys_db()[key]:
+        if 'user_id' not in keys_db()[key]:
             log(f'db error: "ref_id" not found in keys_db()[key]: "{keys_db()[key]}"')
             return 403, {'msg': 'db error'}
         else:
-            key_type = keys_db()[key]['type']
-            ref_id = keys_db()[key]['ref_id']
-            if key_type != KeyType.ACTOR or ref_id not in actor_db():
-                return 400, {'msg': 'permission denied'}
+            user_id = keys_db()[key]['user_id']
+
+            if not 'role' in user_db()[user_id]:
+                log(f'db error: "type" not in {user_db()[user_id]=}"]')
+                return 403, {'msg': 'db error'}
             else:
-                return 200, {actor_id: get_actor_state(actor_id) for actor_id in actor_id_list}
+                if user_db()[user_id]['role'] in [Role.ACTOR]:
+                    if check_valid(user_id):
+                        msg = {}
+                        allowed_actors = get_all_actors(user_id, 'r')
+                        for actor_id in actor_id_list:
+                            if actor_id not in allowed_actors:
+                                msg[actor_id] = 403, {'msg': 'permission denied'}
+                        for actor_id in allowed_actors:
+                            if actor_id not in actor_id_list:
+                                continue
+                            else:
+                                msg[actor_id] = get_actor_state(actor_id)
+                        return 200, msg
+                    else:
+                        log(f'permission error: user not valid: {user_id} // {[v for v in valid_db().values() if v["user_id"] == user_id]}')
+                        return 403, {'msg': 'permission error'}
+
+                else:
+                    log(f'db error: unallowed role: {user_db()[user_id]['role']=}')
+                    return 403, {'msg': 'db error'}
 
 
 def create_app(config_class=Config):
