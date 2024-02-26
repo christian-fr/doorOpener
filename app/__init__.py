@@ -3,7 +3,7 @@ import json
 import uuid
 from enum import Enum
 from json import JSONDecodeError
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 
 from flask import Flask, request, Config
 
@@ -18,9 +18,9 @@ TS_MAX = datetime.datetime(9999, 12, 31, 0, 0, 0, 0, tzinfo=datetime.timezone.ut
 
 class Role(Enum):
     DISABLED = 0
-    USER = 0
-    ACTOR = 1
-    ADMIN = 2
+    USER = 1
+    ACTOR = 2
+    ADMIN = 3
 
 
 class KeyType(Enum):
@@ -92,11 +92,11 @@ def get_actor_state(user_id: str) -> Tuple[int, bool]:
         if state_db()[user_id]['last_on'] is None:
             return 200, False
         else:
-            #print(f"## {state_db()[user_id]['last_on'] - datetime.timedelta(seconds=2)}")
-            #print(f"## {now()}")
-            #print(f"## {state_db()[user_id]['last_on'] + datetime.timedelta(seconds=user_db()[user_id]['timeout'])}")
-            #print(f"\n")
-            #print(f"### {state_db()[user_id]['last_on'] - datetime.timedelta(
+            # print(f"## {state_db()[user_id]['last_on'] - datetime.timedelta(seconds=2)}")
+            # print(f"## {now()}")
+            # print(f"## {state_db()[user_id]['last_on'] + datetime.timedelta(seconds=user_db()[user_id]['timeout'])}")
+            # print(f"\n")
+            # print(f"### {state_db()[user_id]['last_on'] - datetime.timedelta(
             #    seconds=2) < now() < state_db()[user_id]['last_on'] + datetime.timedelta(
             #    seconds=user_db()[user_id]['timeout'])}")
             return 200, state_db()[user_id]['last_on'] - datetime.timedelta(
@@ -175,7 +175,7 @@ def set_state(actor_id_list: List[str], key: str) -> Tuple[int, dict]:
                         return 403, {'msg': 'db error'}
 
 
-COUNTER = 0
+COUNTER = 1
 
 
 def generate_new_key():
@@ -190,27 +190,8 @@ def create_user_key(user_id: str):
         log(f'{user_id=} not found in user_db()')
         return 403, {'msg': 'db error'}
     new_key = generate_new_key()
-    keys_db()[new_key] = {'type': KeyType.USER, 'ref_id': user_id}
+    keys_db()[new_key] = {'user_id': user_id}
     return 200, {'msg': 'key created', 'api-key': new_key}
-
-
-def create_actor_key(actor_id: str):
-    if actor_id not in actor_db():
-        log(f'{actor_id=} not found in user_db()')
-        return 403, {'msg': 'db error'}
-    new_key = generate_new_key()
-    keys_db()[new_key] = {'type': KeyType.ACTOR, 'ref_id': actor_id}
-    return 200, {'msg': 'key created', 'api-key': new_key}
-
-
-def create_actor(name: str, actor_id: str = str(uuid.uuid4()), timeout: int = 5):
-    assert name.strip() != ''
-    if id in actor_db():
-        log(f'actor "{name}" already present')
-        return 403, {'msg': 'db error'}
-    else:
-        actor_db()[actor_id] = {'name': name, 'timeout': timeout}
-        return 200, {'msg': 'actor created', 'actor-id': actor_id}
 
 
 def create_user(name: str, user_id: str = str(uuid.uuid4()), actor_ids: List[str] = None,
@@ -363,29 +344,122 @@ def create_app(config_class=Config):
 
     @app.route('/api/createUser', methods=['GET'])
     def create_user():
-        raise NotImplementedError()
-        if request.args.get('actors') is None:
-            return 'Actor ID not found'
-        elif request.args.get('key') is None:
-            return 'Key not found'
+        if request.args.get('api-key') is None:
+            return 'key missing'
+        elif request.args.get('name') is None:
+            return 'name missing'
+        elif request.args.get('role') is None:
+            return 'role missing'
         else:
-            result = set_state(request.args.get('actors'), request.args.get('key'))
-        return 'Door opened'
+            if request.args.get('user-id') is not None:
+                user_id = request.args.get('user-id')
+            else:
+                user_id = str(uuid.uuid4())
+
+            try:
+                role = Role[request.args.get('role')]
+            except KeyError:
+                log(f'unkown role: {request.args.get('role')}')
+                return 'role unkown'
+            try:
+                timeout = int(request.args.get('timeout')) if request.args.get('timeout') is not None else None
+            except ValueError:
+                log(f'invalid timeout: {request.args.get('timeout')}')
+                return 'invalid timeout value'
+
+            result = create_user_helper(request.args.get('api-key'), user_id,
+                                        request.args.get('name'), role, timeout)
+            return app.response_class(
+                response=json.dumps(result[1]),
+                status=result[0],
+                mimetype='application/json'
+            )
+
+    @app.route('/api/createApiKey', methods=['GET'])
+    def create_user():
+        raise NotImplementedError()
+        if request.args.get('api-key') is None:
+            return 'key missing'
+        elif request.args.get('name') is None:
+            return 'name missing'
+        elif request.args.get('role') is None:
+            return 'role missing'
+        else:
+            if request.args.get('user-id') is not None:
+                user_id = request.args.get('user-id')
+            else:
+                user_id = str(uuid.uuid4())
+
+            try:
+                role = Role[request.args.get('role')]
+            except KeyError:
+                log(f'unkown role: {request.args.get('role')}')
+                return 'role unkown'
+            try:
+                timeout = int(request.args.get('timeout')) if request.args.get('timeout') is not None else None
+            except ValueError:
+                log(f'invalid timeout: {request.args.get('timeout')}')
+                return 'invalid timeout value'
+
+            result = create_user_helper(request.args.get('api-key'), user_id,
+                                        request.args.get('name'), role, timeout)
+            return app.response_class(
+                response=json.dumps(result[1]),
+                status=result[0],
+                mimetype='application/json'
+            )
+
+    @app.route('/api/setPermissions', methods=['GET'])
+    def set_permission():
+        raise NotImplementedError()
+        if request.args.get('api-key') is None:
+            return 'key missing'
+        elif request.args.get('name') is None:
+            return 'name missing'
+        elif request.args.get('role') is None:
+            return 'role missing'
+        else:
+            if request.args.get('user-id') is not None:
+                user_id = request.args.get('user-id')
+            else:
+                user_id = str(uuid.uuid4())
+
+            try:
+                role = Role[request.args.get('role')]
+            except KeyError:
+                log(f'unkown role: {request.args.get('role')}')
+                return 'role unkown'
+            try:
+                timeout = int(request.args.get('timeout')) if request.args.get('timeout') is not None else None
+            except ValueError:
+                log(f'invalid timeout: {request.args.get('timeout')}')
+                return 'invalid timeout value'
+
+            result = create_user_helper(request.args.get('api-key'), user_id,
+                                        request.args.get('name'), role, timeout)
+            return app.response_class(
+                response=json.dumps(result[1]),
+                status=result[0],
+                mimetype='application/json'
+            )
 
     return app
 
-    @app.route('/api/createActor', methods=['GET'])
-    def create_actor():
-        raise NotImplementedError()
-        if request.args.get('actors') is None:
-            return 'Actor ID not found'
-        elif request.args.get('key') is None:
-            return 'Key not found'
-        else:
-            result = set_state(request.args.get('actors'), request.args.get('key'))
-        return 'Door opened'
 
-    return app
+def create_user_helper(api_key: str, user_id: str, name: str, role: Role, timeout: int) -> Tuple[
+    int, Union[Dict[str, str], str]]:
+    if api_key in keys_db():
+        api_user_id = keys_db()[api_key]['user_id']
+        if user_db()[api_user_id]['role'] == Role.ADMIN:
+            if user_id in user_db():
+                return 400, 'user id already present'
+            else:
+                if role in [Role.USER, Role.DISABLED]:
+                    timeout = None
+                user_db()[user_id] = {'name': name, 'role': role, 'timeout': timeout}
+                return 200, {'msg': 'user created', 'user-id': user_id}
+        else:
+            return 403, 'permission error'
 
 
 if __name__ == '__main__':

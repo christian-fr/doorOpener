@@ -1,7 +1,7 @@
 import datetime
 from unittest import TestCase
-from app import user_db, keys_db, state_db, valid_db, permission_db, get_state, set_state, create_user, create_actor, \
-    create_actor_key, create_user_key, Role, now
+from app import user_db, keys_db, state_db, valid_db, permission_db, get_state, set_state, create_user, create_user_key, \
+    Role, now
 from tests.util.mock_datetime import mock_datetime_now
 
 TS_11_00_00 = datetime.datetime(year=2024, month=2, day=20, hour=11, minute=0, second=0, tzinfo=datetime.timezone.utc)
@@ -27,10 +27,11 @@ KEY_ACTOR2 = 'f160e336939ee5b8ed3206962c488fc5be3f6e35a3ca92fc170e80657958bda3'
 KEY_USER0001 = '052b3945b6913a005c74c52d0a2c48cfc7c10207db775d51950a21bc12dcc472'
 KEY_USER0002 = '781bd77d28bf4c53e13719136180dcef2d54c75b37b8a3553339859255731d9d'
 KEY_USER0003 = '8c267d03891a23661ec3e89dbed546297cb86bae05d4767ff01cc0b1616d3499'
+KEY_ADMIN = '98cfefb9d2c1477b3d98ebd19ec7a69bc0f82ce81a1ee88fcbdfe07a7681a829'
 
 
-class ApiFunctionsTest(TestCase):
-    def setUp(self):
+def set_up_testcase() -> None:
+    with mock_datetime_now(TS_11_00_00, datetime):
         keys_db().clear()
         user_db().clear()
         state_db().clear()
@@ -76,6 +77,12 @@ class ApiFunctionsTest(TestCase):
         keys_db()[KEY_USER0003] = {'user_id': 'us0003'}
         keys_db()[KEY_ACTOR1] = {'user_id': 'ac0001'}
         keys_db()[KEY_ACTOR2] = {'user_id': 'ac0002'}
+        keys_db()[KEY_ADMIN] = {'user_id': 'ad0000'}
+
+
+class ApiFunctionsTest(TestCase):
+    def setUp(self):
+        set_up_testcase()
 
     def tearDown(self):
         pass
@@ -193,22 +200,23 @@ class ApiFunctionsTest(TestCase):
 
     def test_sanitize_state_db(self):
         with mock_datetime_now(TS_12_30_00, datetime):
-            # enable state for actor 9a98... with user 0001
+            # enable state for actor ac0001 with user us0001
             self.assertEqual((200, {'ac0001': 200}), set_state(['ac0001'], KEY_USER0001))
 
         with mock_datetime_now(TS_12_30_04, datetime):
-            # get initial state for actor 9a98..
+            # get initial state for actor ac0001
             self.assertEqual((200, {'ac0001': (200, True)}), get_state(['ac0001'], KEY_ACTOR1))
 
             # manually set last_on to a future date
             state_db()['ac0001']['last_on'] = TS_12_31_00
-
+        db = state_db().copy()
         with mock_datetime_now(TS_12_30_06, datetime):
             # check if sanitazation works as expected (state will be set to None, thereby evaluating to false below
             # assert that second actor is still false
             self.assertEqual((200, {'ac0002': (200, False)}), get_state(['ac0002'], KEY_ACTOR2))
             self.assertEqual((200, {'ac0001': (200, False)}), get_state(['ac0001'], KEY_ACTOR1))
 
+            db = state_db().copy()
             # check that the future timestamp is in state_db()
             self.assertEqual({'ac0001': {'last_on': TS_12_31_00}}, state_db())
             # iterate 10 times to trigger the sanitization
@@ -227,12 +235,7 @@ class ApiFunctionsTest(TestCase):
         self.assertEqual({'name': 'testUser', 'actor_ids': [], 'valid_from': None, 'valid_until': None},
                          user_db()[user_id])
 
-    def test_create_actor_key(self):
-        actor_id = create_actor(name='testActor', timeout=10)[1]['actor-id']
-        api_key = create_actor_key(actor_id)[1]['api-key']
-        self.assertEqual({'type': KeyType.ACTOR, 'ref_id': actor_id}, keys_db()[api_key])
-
     def test_create_user_key(self):
         user_id = create_user(name='testUser', actor_ids=['ac0001'])[1]['user-id']
         api_key = create_user_key(user_id)[1]['api-key']
-        self.assertEqual({'type': KeyType.USER, 'ref_id': user_id}, keys_db()[api_key])
+        self.assertEqual({'user_id': user_id}, keys_db()[api_key])
