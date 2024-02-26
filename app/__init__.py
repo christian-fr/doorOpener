@@ -1,5 +1,6 @@
 import datetime
 import json
+import uuid
 from enum import Enum
 from json import JSONDecodeError
 from typing import List, Dict, Tuple
@@ -9,6 +10,13 @@ from flask import Flask, request, Config
 
 def now():
     return datetime.datetime.now()
+
+
+class Role(Enum):
+    DISABLED = 0
+    USER = 0
+    ACTOR = 1
+    ADMIN = 2
 
 
 class KeyType(Enum):
@@ -120,6 +128,56 @@ def set_state(actors: List[str], key: str) -> Tuple[int, dict]:
 
 
 COUNTER = 0
+
+
+def generate_new_key():
+    new_key = None
+    while new_key is None or new_key in keys_db():
+        new_key = str(uuid.uuid4())
+    return new_key
+
+
+def create_user_key(user_id: str):
+    if user_id not in user_db():
+        log(f'{user_id=} not found in user_db()')
+        return 403, {'msg': 'db error'}
+    new_key = generate_new_key()
+    keys_db()[new_key] = {'type': KeyType.USER, 'ref_id': user_id}
+    return 200, {'msg': 'key created', 'api-key': new_key}
+
+
+def create_actor_key(actor_id: str):
+    if actor_id not in actor_db():
+        log(f'{actor_id=} not found in user_db()')
+        return 403, {'msg': 'db error'}
+    new_key = generate_new_key()
+    keys_db()[new_key] = {'type': KeyType.ACTOR, 'ref_id': actor_id}
+    return 200, {'msg': 'key created', 'api-key': new_key}
+
+
+def create_actor(name: str, actor_id: str = str(uuid.uuid4()), timeout: int = 5):
+    assert name.strip() != ''
+    if id in actor_db():
+        log(f'actor "{name}" already present')
+        return 403, {'msg': 'db error'}
+    else:
+        actor_db()[actor_id] = {'name': name, 'timeout': timeout}
+        return 200, {'msg': 'actor created', 'actor-id': actor_id}
+
+
+def create_user(name: str, user_id: str = str(uuid.uuid4()), actor_ids: List[str] = None,
+                valid_from: datetime.datetime = None,
+                valid_until: datetime.datetime = None):
+    if actor_ids is None:
+        actor_ids = []
+    assert user_id.strip() != ''
+    if user_id in user_db():
+        log(f'user id "{user_id}" already present')
+        return 403, {'msg': 'db error'}
+    else:
+        user_db()[user_id] = {'name': name, 'actor_ids': actor_ids, 'valid_from': valid_from,
+                              'valid_until': valid_until}
+        return 200, {'msg': 'user created', 'user-id': user_id}
 
 
 def check_and_increment(interval: int = 10, max_val: int = 100000, inc: int = 1):
@@ -240,6 +298,19 @@ def create_app(config_class=Config):
 
     @app.route('/api/createUser', methods=['GET'])
     def create_user():
+        raise NotImplementedError()
+        if request.args.get('actors') is None:
+            return 'Actor ID not found'
+        elif request.args.get('key') is None:
+            return 'Key not found'
+        else:
+            result = set_state(request.args.get('actors'), request.args.get('key'))
+        return 'Door opened'
+
+    return app
+
+    @app.route('/api/createActor', methods=['GET'])
+    def create_actor():
         raise NotImplementedError()
         if request.args.get('actors') is None:
             return 'Actor ID not found'

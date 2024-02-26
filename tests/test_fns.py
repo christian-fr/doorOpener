@@ -1,6 +1,7 @@
 import datetime
 from unittest import TestCase
-from app import user_db, keys_db, actor_db, state_db, KeyType, get_state, set_state
+from app import user_db, keys_db, actor_db, state_db, KeyType, get_state, set_state, create_user, create_actor, \
+    create_actor_key, create_user_key
 from tests.util.mock_datetime import mock_datetime_now
 
 TS_11_00_00 = datetime.datetime(year=2024, month=2, day=20, hour=11, minute=0, second=0)
@@ -208,3 +209,30 @@ class ApiFunctionsTest(TestCase):
             self.assertEqual({'actor1': {'last_on': None}}, state_db())
             # ... which should evaluate to False on the get_state endpoint
             self.assertEqual((200, {'actor1': (200, False)}), get_state(['actor1'], KEY_ACTOR1))
+
+    def test_create_actor(self):
+        actor_id = '0123testactor6789'
+        self.assertNotIn(actor_id, actor_db())
+        result = create_actor(name='testActor', timeout=10, actor_id=actor_id)
+        self.assertEqual((200, {'actor-id': '0123testactor6789', 'msg': 'actor created'}), result)
+        self.assertIn(actor_id, actor_db())
+        self.assertEqual({'name': 'testActor', 'timeout': 10}, actor_db()[actor_id])
+
+    def test_create_user(self):
+        user_id = '0123testuser6789'
+        self.assertNotIn(user_id, actor_db())
+        result = create_user(name='testUser', actor_ids=[], user_id=user_id)
+        self.assertEqual((200, {'msg': 'user created', 'user-id': '0123testuser6789'}), result)
+        self.assertIn(user_id, user_db())
+        self.assertEqual({'name': 'testUser', 'actor_ids': [], 'valid_from': None, 'valid_until': None},
+                         user_db()[user_id])
+
+    def test_create_actor_key(self):
+        actor_id = create_actor(name='testActor', timeout=10)[1]['actor-id']
+        api_key = create_actor_key(actor_id)[1]['api-key']
+        self.assertEqual({'type': KeyType.ACTOR, 'ref_id': actor_id}, keys_db()[api_key])
+
+    def test_create_user_key(self):
+        user_id = create_user(name='testUser', actor_ids=['actor1'])[1]['user-id']
+        api_key = create_user_key(user_id)[1]['api-key']
+        self.assertEqual({'type': KeyType.USER, 'ref_id': user_id}, keys_db()[api_key])
