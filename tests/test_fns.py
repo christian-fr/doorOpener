@@ -1,6 +1,6 @@
 import datetime
 from unittest import TestCase
-from app.app import user_db, keys_db, actor_db, state_db, KeyType, get_state, set_state
+from app import user_db, keys_db, actor_db, state_db, KeyType, get_state, set_state
 from tests.util.mock_datetime import mock_datetime_now
 
 TS_11_00_00 = datetime.datetime(year=2024, month=2, day=20, hour=11, minute=0, second=0)
@@ -63,15 +63,6 @@ class ApiFunctionsTest(TestCase):
     def tearDown(self):
         pass
 
-    def test_get_state_initial(self):
-        # get initial state for actor "actor1"
-        self.assertEqual((200, {'actor1': (200, False)}),
-                         get_state(['actor1'], KEY_ACTOR1))
-
-        # get initial state for actor f160...
-        self.assertEqual((200, {'actor2': (200, False)}),
-                         get_state(['actor2'], KEY_ACTOR2))
-
     def test_get_state_error(self):
         # get initial state for a wrong key
         self.assertEqual((400, {'msg': 'permission denied'}),
@@ -104,10 +95,6 @@ class ApiFunctionsTest(TestCase):
         self.assertEqual((403, {'msg': 'db error'}), get_state(['actor2'], key_error))
 
     def test_check_key01(self):
-        with mock_datetime_now(TS_12_30_00, datetime):
-            # assert initial states are as expected
-            self.test_get_state_initial()
-
         with mock_datetime_now(TS_12_30_01, datetime):
             # enable state for actor 9a98... with user 0001
             self.assertEqual((200, {'actor1': 200}), set_state(['actor1'], KEY_USER0001))
@@ -133,10 +120,6 @@ class ApiFunctionsTest(TestCase):
             self.assertEqual((200, {'actor2': (200, False)}), get_state(['actor2'], KEY_ACTOR2))
 
     def test_check_key02(self):
-        with mock_datetime_now(TS_12_30_00, datetime):
-            # assert initial states are as expected
-            self.test_get_state_initial()
-
         with mock_datetime_now(TS_12_30_01, datetime):
             self.assertEqual((200, {'actor2': 200}), set_state(['actor2'], KEY_USER0002))
 
@@ -166,17 +149,13 @@ class ApiFunctionsTest(TestCase):
             self.assertEqual((200, {'actor2': (200, False)}), get_state(['actor2'], KEY_ACTOR2))
 
     def test_check_key03(self):
-        with mock_datetime_now(TS_12_30_00, datetime):
-            # assert initial states are as expected
-            self.test_get_state_initial()
-
         with mock_datetime_now(TS_12_30_01, datetime):
             # enable state for actor 9a98... and f160... with user 0003
             self.assertEqual((200, {'actor1': 200, 'actor2': 200}), set_state(['actor1', 'actor2'], KEY_USER0003))
 
             # check the state
-            self.assertEqual((200, {'actor1': 200}), set_state(['actor1'], KEY_USER0003))
-            self.assertEqual((200, {'actor2': 200}), set_state(['actor2'], KEY_USER0003))
+            self.assertEqual((200, {'actor1': (200, True)}), get_state(['actor1'], KEY_ACTOR1))
+            self.assertEqual((200, {'actor2': (200, True)}), get_state(['actor2'], KEY_ACTOR2))
 
         with mock_datetime_now(TS_12_30_02, datetime):
             # get states for actors 9a98... and f160...
@@ -205,9 +184,6 @@ class ApiFunctionsTest(TestCase):
 
     def test_sanitize_state_db(self):
         with mock_datetime_now(TS_12_30_00, datetime):
-            # assert initial states are as expected
-            self.test_get_state_initial()
-
             # enable state for actor 9a98... with user 0001
             self.assertEqual((200, {'actor1': 200}), set_state(['actor1'], KEY_USER0001))
 
