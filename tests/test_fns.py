@@ -1,7 +1,7 @@
 import datetime
 from unittest import TestCase
-from app import user_db, keys_db, state_db, valid_db, permission_db, get_state, set_state, create_user, create_user_key, \
-    Role, now, list_api_keys_helper
+from app import user_db, keys_db, state_db, valid_db, permission_db, get_state, set_state, create_user_key, \
+    Role, now, list_api_keys_helper, create_user_helper
 from tests.util.mock_datetime import mock_datetime_now
 
 TS_11_00_00 = datetime.datetime(year=2024, month=2, day=20, hour=11, minute=0, second=0, tzinfo=datetime.timezone.utc)
@@ -229,14 +229,16 @@ class ApiFunctionsTest(TestCase):
     def test_create_user(self):
         user_id = '0123testuser6789'
         self.assertNotIn(user_id, user_db())
-        result = create_user(name='testUser', actor_ids=[], user_id=user_id)
+        result = create_user_helper(api_key=KEY_ADMIN, user_id=user_id, name='testUser', role=Role.USER,
+                                    valid_from=TS_11_00_00, valid_until=TS_16_00_00)
         self.assertEqual((200, {'msg': 'user created', 'user-id': '0123testuser6789'}), result)
         self.assertIn(user_id, user_db())
-        self.assertEqual({'name': 'testUser', 'actor_ids': [], 'valid_from': None, 'valid_until': None},
-                         user_db()[user_id])
+        self.assertEqual({'name': 'testUser', 'role': Role.USER, 'valid_from': TS_11_00_00, 'valid_until': TS_16_00_00,
+                          'timeout': None}, user_db()[user_id])
 
     def test_create_user_key(self):
-        user_id = create_user(name='testUser', actor_ids=['ac0001'])[1]['user-id']
+        user_id = create_user_helper(api_key=KEY_ADMIN, name='testUser', role=Role.USER, valid_from=TS_11_00_00,
+                                     valid_until=TS_16_00_00)[1]['user-id']
         api_key = create_user_key(user_id)[1]['api-key']
         self.assertEqual({'user_id': user_id}, keys_db()[api_key])
 

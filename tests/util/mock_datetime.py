@@ -43,9 +43,9 @@ def mock_datetime_now(target, datetime_module):
             return target
 
     # Python2 & Python3-compatible metaclass
-    MockedDatetime = DatetimeSubclassMeta('datetime', (BaseMockedDatetime,), {})
+    mocked_date_time = DatetimeSubclassMeta('datetime', (BaseMockedDatetime,), {})
 
-    return unittest.mock.patch.object(datetime_module, 'datetime', MockedDatetime)
+    return unittest.mock.patch.object(datetime_module, 'datetime', mocked_date_time)
 
 
 def main():

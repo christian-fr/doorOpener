@@ -4,7 +4,7 @@ import os
 import uuid
 from enum import Enum
 from json import JSONDecodeError
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple, Union, Optional
 
 from flask import Flask, request, Config
 
@@ -158,7 +158,7 @@ def set_state(actor_id_list: List[str], key: str) -> Tuple[int, dict]:
                 log(f'unknown user id: "user_id" not found in {user_db()=}')
                 return 403, {'msg': 'db error'}
             else:
-                if not 'role' in user_db()[user_id]:
+                if 'role' not in user_db()[user_id]:
                     log(f'db error: "type" not in {user_db()[user_id]=}"]')
                     return 403, {'msg': 'db error'}
                 else:
@@ -195,21 +195,6 @@ def create_user_key(user_id: str):
     return 200, {'msg': 'key created', 'api-key': new_key}
 
 
-def create_user(name: str, user_id: str = str(uuid.uuid4()), actor_ids: List[str] = None,
-                valid_from: datetime.datetime = None,
-                valid_until: datetime.datetime = None):
-    if actor_ids is None:
-        actor_ids = []
-    assert user_id.strip() != ''
-    if user_id in user_db():
-        log(f'user id "{user_id}" already present')
-        return 403, {'msg': 'db error'}
-    else:
-        user_db()[user_id] = {'name': name, 'actor_ids': actor_ids, 'valid_from': valid_from,
-                              'valid_until': valid_until}
-        return 200, {'msg': 'user created', 'user-id': user_id}
-
-
 def check_and_increment(interval: int = 10, max_val: int = 100000, inc: int = 1):
     global COUNTER
     result = False
@@ -238,7 +223,7 @@ def get_state(actor_id_list: List[str], key: str) -> Tuple[int, dict]:
         else:
             user_id = keys_db()[key]['user_id']
 
-            if not 'role' in user_db()[user_id]:
+            if 'role' not in user_db()[user_id]:
                 log(f'db error: "type" not in {user_db()[user_id]=}"]')
                 return 403, {'msg': 'db error'}
             else:
@@ -256,7 +241,8 @@ def get_state(actor_id_list: List[str], key: str) -> Tuple[int, dict]:
                                 msg[actor_id] = get_actor_state(actor_id)
                         return 200, msg
                     else:
-                        log(f'permission error: user not valid: {user_id} // {[v for v in valid_db().values() if v["user_id"] == user_id]}')
+                        log(f'permission error: user not valid: {user_id} // '
+                            f'{[v for v in valid_db().values() if v["user_id"] == user_id]}')
                         return 403, {'msg': 'permission error'}
 
                 else:
@@ -275,17 +261,25 @@ def list_api_keys_helper(admin_api_key: str) -> Tuple[int, Dict[str, Union[List[
             return 200, {'api-keys-truncated': [k[:6] for k in keys_db().keys() if k != admin_api_key]}
 
 
-def create_user_helper(api_key: str, user_id: str, name: str, role: Role, timeout: int) -> Tuple[
-    int, Union[Dict[str, str], str]]:
+def create_user_helper(api_key: str, name: str, role: Role, user_id: Optional[str] = None,
+                       timeout: Optional[int] = None, valid_from: datetime.datetime = None,
+                       valid_until: datetime.datetime = None) -> Tuple[int, Union[Dict[str, str], str]]:
+    if 'user_id' is None:
+        user_id = uuid.uuid4().hex
     if api_key in keys_db():
         api_user_id = keys_db()[api_key]['user_id']
         if user_db()[api_user_id]['role'] == Role.ADMIN:
             if user_id in user_db():
                 return 400, 'user id already present'
             else:
+                if valid_from is not None and valid_until is not None:
+                    if valid_from > valid_until:
+                        return 400, 'valid-from and valid-until invalid'
+
                 if role in [Role.USER, Role.DISABLED]:
                     timeout = None
-                user_db()[user_id] = {'name': name, 'role': role, 'timeout': timeout}
+                user_db()[user_id] = {'name': name, 'role': role, 'timeout': timeout, 'valid_from': valid_from,
+                                      'valid_until': valid_until}
                 return 200, {'msg': 'user created', 'user-id': user_id}
         else:
             return 403, 'permission error'
@@ -413,8 +407,7 @@ def create_app(config_class=Config):
                 log(f'invalid timeout: {request.args.get('timeout')}')
                 return 'invalid timeout value'
 
-            result = create_user_helper(request.args.get('api-key'), user_id,
-                                        request.args.get('name'), role, timeout)
+            result = create_user_helper(request.args.get('api-key'), request.args.get('name'), role, user_id, timeout)
             return app.response_class(
                 response=json.dumps(result[1]),
                 status=result[0],
