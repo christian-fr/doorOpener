@@ -88,17 +88,35 @@ class TestApi(TestCase):
             self.assertEqual(200, response.status_code)
 
     def test_api_set_permissions(self):
-        with mock_datetime_now(TS_12_30_00, datetime):
-            self.fail()
-            # query_string = {'api-key': KEY_ADMIN, 'user-id': 'testUser', 'name': 'a test user', 'role': Role.USER.name}
-            # response = self.app_test.get('/api/setPermissions', query_string=query_string, follow_redirects=True)
-            # self.assertEqual({'msg': 'user created', 'user-id': 'testUser'}, response.json)
-            # self.assertEqual(200, response.status_code)
+        query_string = {'api-key': KEY_ADMIN, 'user-id': 'us0002', 'actor-id': 'ac0001', 'mode': 'w'}
+        response = self.app_test.get('/api/setPermissions', query_string=query_string, follow_redirects=True)
+        response_json = response.json.copy()
+        permission_id = response_json.pop('permission-id')
+        self.assertEqual({'msg': 'permission modified'}, response_json)
+        self.assertEqual(32, len(permission_id))
 
-    def test_api_create_api_key(self):
+    def test_api_list_api_keys(self):
+        query_string = {'api-key': KEY_ADMIN}
+        response = self.app_test.get('/api/listApiKeys', query_string=query_string, follow_redirects=True)
+        self.assertEqual({'052b39', '781bd7', '8c267d', '9a9893', 'f160e3'}, set(response.json['api-keys-truncated']))
+        self.assertEqual(200, response.status_code)
+
+    def test_api_generate_api_key(self):
         with mock_datetime_now(TS_12_30_00, datetime):
-            self.fail()
-            # query_string = {'api-key': KEY_ADMIN, 'user-id': 'testUser', 'name': 'a test user', 'role': Role.USER.name}
-            # response = self.app_test.get('/api/createApiKey', query_string=query_string, follow_redirects=True)
-            # self.assertEqual({'msg': 'user created', 'user-id': 'testUser'}, response.json)
-            # self.assertEqual(200, response.status_code)
+            query_string = {'api-key': KEY_ADMIN, 'user-id': 'us0003'}
+            response = self.app_test.get('/api/createApiKey', query_string=query_string, follow_redirects=True)
+            response_json = dict(response.json)
+            api_key = response_json.pop('api-key')
+            self.assertEqual({'msg': 'api key generated'}, response_json)
+            self.assertEqual(200, response.status_code)
+            self.assertEqual(64, len(api_key))
+
+            query_string = {'api-key': KEY_ADMIN, 'user-id': 'us0002'}
+            response2 = self.app_test.get('/api/createApiKey', query_string=query_string, follow_redirects=True)
+            response2_json = dict(response2.json)
+            api_key2 = response2_json.pop('api-key')
+            self.assertEqual({'msg': 'api key generated'}, response2_json)
+            self.assertEqual(200, response2.status_code)
+            self.assertEqual(64, len(api_key2))
+
+            self.assertNotEqual(api_key, api_key2)

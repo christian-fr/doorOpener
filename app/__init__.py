@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 import uuid
 from enum import Enum
 from json import JSONDecodeError
@@ -263,6 +264,51 @@ def get_state(actor_id_list: List[str], key: str) -> Tuple[int, dict]:
                     return 403, {'msg': 'db error'}
 
 
+def list_api_keys_helper(admin_api_key: str) -> Tuple[int, Dict[str, Union[List[str], str]]]:
+    if admin_api_key not in keys_db():
+        return 403, {'msg': 'permission error'}
+    else:
+        user_id = keys_db()[admin_api_key]['user_id']
+        if user_db()[user_id]['role'] != Role.ADMIN:
+            return 403, {'msg': 'permission error'}
+        else:
+            return 200, {'api-keys-truncated': [k[:6] for k in keys_db().keys() if k != admin_api_key]}
+
+
+def create_user_helper(api_key: str, user_id: str, name: str, role: Role, timeout: int) -> Tuple[
+    int, Union[Dict[str, str], str]]:
+    if api_key in keys_db():
+        api_user_id = keys_db()[api_key]['user_id']
+        if user_db()[api_user_id]['role'] == Role.ADMIN:
+            if user_id in user_db():
+                return 400, 'user id already present'
+            else:
+                if role in [Role.USER, Role.DISABLED]:
+                    timeout = None
+                user_db()[user_id] = {'name': name, 'role': role, 'timeout': timeout}
+                return 200, {'msg': 'user created', 'user-id': user_id}
+        else:
+            return 403, 'permission error'
+
+
+def create_api_key_helper(api_key: str, user_id: str) -> Tuple[int, Union[Dict[str, str], str]]:
+    if api_key in keys_db():
+        api_user_id = keys_db()[api_key]['user_id']
+        if user_db()[api_user_id]['role'] == Role.ADMIN:
+            if user_id not in user_db():
+                return 403, 'user id not found'
+            else:
+                api_key = gen_api_key()
+                keys_db()[api_key] = {'user_id': user_id}
+                return 200, {'msg': 'api key generated', 'api-key': api_key}
+        else:
+            return 403, 'permission error'
+
+
+def gen_api_key() -> str:
+    return os.urandom(32).hex()
+
+
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -376,33 +422,25 @@ def create_app(config_class=Config):
             )
 
     @app.route('/api/createApiKey', methods=['GET'])
-    def create_user():
-        raise NotImplementedError()
+    def create_api_key():
         if request.args.get('api-key') is None:
             return 'key missing'
-        elif request.args.get('name') is None:
-            return 'name missing'
-        elif request.args.get('role') is None:
-            return 'role missing'
+        elif request.args.get('user-id') is None:
+            return 'user-id missing'
         else:
-            if request.args.get('user-id') is not None:
-                user_id = request.args.get('user-id')
-            else:
-                user_id = str(uuid.uuid4())
+            result = create_api_key_helper(request.args.get('api-key'), request.args.get('user-id'))
+            return app.response_class(
+                response=json.dumps(result[1]),
+                status=result[0],
+                mimetype='application/json'
+            )
 
-            try:
-                role = Role[request.args.get('role')]
-            except KeyError:
-                log(f'unkown role: {request.args.get('role')}')
-                return 'role unkown'
-            try:
-                timeout = int(request.args.get('timeout')) if request.args.get('timeout') is not None else None
-            except ValueError:
-                log(f'invalid timeout: {request.args.get('timeout')}')
-                return 'invalid timeout value'
-
-            result = create_user_helper(request.args.get('api-key'), user_id,
-                                        request.args.get('name'), role, timeout)
+    @app.route('/api/listApiKeys', methods=['GET'])
+    def list_api_keys():
+        if request.args.get('api-key') is None:
+            return 'key missing'
+        else:
+            result = list_api_keys_helper(request.args.get('api-key'))
             return app.response_class(
                 response=json.dumps(result[1]),
                 status=result[0],
@@ -410,56 +448,42 @@ def create_app(config_class=Config):
             )
 
     @app.route('/api/setPermissions', methods=['GET'])
-    def set_permission():
-        raise NotImplementedError()
+    def set_permissions():
         if request.args.get('api-key') is None:
-            return 'key missing'
-        elif request.args.get('name') is None:
-            return 'name missing'
-        elif request.args.get('role') is None:
-            return 'role missing'
+            return 'api-key missing'
+        elif request.args.get('user-id') is None:
+            return 'user-id missing'
+        elif request.args.get('actor-id') is None:
+            return 'actor-id missing'
+        elif request.args.get('mode') is None:
+            return 'mode missing'
         else:
-            if request.args.get('user-id') is not None:
-                user_id = request.args.get('user-id')
+            user_id = request.args.get('user-id')
+            actor_id = request.args.get('actor-id')
+            if actor_id not in user_db().keys():
+                return 400, 'actor not found'
+            elif user_db()[actor_id]['role'] != Role.ACTOR:
+                return 400, 'user with user-id is not an actor'
             else:
-                user_id = str(uuid.uuid4())
+                all_permissions_for_user_actor = {k: v for k, v in permission_db().items() if
+                                                  v['user_id'] == user_id and v['actor_id'] == actor_id}
+                if all_permissions_for_user_actor == {}:
+                    key_to_modify = uuid.uuid4().hex
+                else:
+                    key_to_modify = list(all_permissions_for_user_actor.keys())[0]
+                # clean up
+                [permission_db().pop(k) for k in list(all_permissions_for_user_actor.keys())[1:]]
+                permission_db()[key_to_modify] = {'user_id': request.args.get('user-id'),
+                                                  'actor_id': request.args.get('actor-id'),
+                                                  'mode': request.args.get('mode')}
 
-            try:
-                role = Role[request.args.get('role')]
-            except KeyError:
-                log(f'unkown role: {request.args.get('role')}')
-                return 'role unkown'
-            try:
-                timeout = int(request.args.get('timeout')) if request.args.get('timeout') is not None else None
-            except ValueError:
-                log(f'invalid timeout: {request.args.get('timeout')}')
-                return 'invalid timeout value'
-
-            result = create_user_helper(request.args.get('api-key'), user_id,
-                                        request.args.get('name'), role, timeout)
-            return app.response_class(
-                response=json.dumps(result[1]),
-                status=result[0],
-                mimetype='application/json'
-            )
+                return app.response_class(
+                    response=json.dumps({'msg': 'permission modified', 'permission-id': key_to_modify}),
+                    status=200,
+                    mimetype='application/json'
+                )
 
     return app
-
-
-def create_user_helper(api_key: str, user_id: str, name: str, role: Role, timeout: int) -> Tuple[
-    int, Union[Dict[str, str], str]]:
-    if api_key in keys_db():
-        api_user_id = keys_db()[api_key]['user_id']
-        if user_db()[api_user_id]['role'] == Role.ADMIN:
-            if user_id in user_db():
-                return 400, 'user id already present'
-            else:
-                if role in [Role.USER, Role.DISABLED]:
-                    timeout = None
-                user_db()[user_id] = {'name': name, 'role': role, 'timeout': timeout}
-                return 200, {'msg': 'user created', 'user-id': user_id}
-        else:
-            return 403, 'permission error'
 
 
 if __name__ == '__main__':

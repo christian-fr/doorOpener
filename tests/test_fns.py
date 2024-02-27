@@ -1,7 +1,7 @@
 import datetime
 from unittest import TestCase
 from app import user_db, keys_db, state_db, valid_db, permission_db, get_state, set_state, create_user, create_user_key, \
-    Role, now
+    Role, now, list_api_keys_helper
 from tests.util.mock_datetime import mock_datetime_now
 
 TS_11_00_00 = datetime.datetime(year=2024, month=2, day=20, hour=11, minute=0, second=0, tzinfo=datetime.timezone.utc)
@@ -239,3 +239,9 @@ class ApiFunctionsTest(TestCase):
         user_id = create_user(name='testUser', actor_ids=['ac0001'])[1]['user-id']
         api_key = create_user_key(user_id)[1]['api-key']
         self.assertEqual({'user_id': user_id}, keys_db()[api_key])
+
+    def test_list_api_keys(self):
+        result = list_api_keys_helper(KEY_ADMIN)
+        self.assertEqual(200, result[0])
+        api_keys = result[1]['api-keys-truncated']
+        self.assertEqual({'052b39', '781bd7', '8c267d', '9a9893', 'f160e3'}, set(api_keys))
