@@ -12,7 +12,7 @@ from app.models.state import State
 from app.models.valid import Valid
 from app.models.users import Users, Role
 
-from tests.context.test_config import Config
+from tests.context.testfixture_config import Config
 
 from tests.test_fns import (USER0001_KEY, USER0002_KEY, USER0003_KEY, ACTOR0001_KEY, ACTOR0002_KEY, ADMIN_KEY, TS_11_00_00,
                             TS_12_29_00, TS_12_30_00, TS_12_30_01, TS_12_30_02, TS_12_30_03, TS_12_30_04, TS_12_30_05,
@@ -31,7 +31,7 @@ class TestApi(TestCase):
             db.create_all()
             db.session.commit()
         cls.app_test = cls.app.test_client()
-        set_up_testcase(cls.app)
+        #set_up_testcase(cls.app)
 
     @classmethod
     def tearDownClass(cls):
