@@ -1,13 +1,14 @@
 import datetime
 import os
 import tempfile
+import unittest.mock
 import uuid
 from pathlib import Path
 from unittest import TestCase
 
 import flask
 
-from app import create_app, db, Users, Valid
+from app import create_app, db, Users, Valid, State
 from app.models.scope import Mode, Scope
 from app.models.users import Role
 from app.util.util import hash_salt_pw, check_pw, simple_hash
@@ -115,6 +116,9 @@ SCOPE04_ID = 'bd7cca24-8658-4724-abc9-481355a5442e'
 SCOPE05_ID = 'e1f760d0-23d0-4d31-aa08-c72b3e550a80'
 SCOPE06_ID = '3df49528-24c2-4397-b346-65e56e7e1f34'
 
+STATE01_ID = '57441403-e8f3-438c-999d-6264079eb95a'
+STATE02_ID = '1b785226-a486-4e1b-b2c9-512d7babdc38'
+
 
 def date_to_str(date: datetime.datetime) -> str:
     return date.strftime('%Y-%m-%dT%H:%M:%S.%f')
@@ -128,8 +132,8 @@ TS_12_29_00str = date_to_str(TS_12_29_00)
 TS_12_30_06str = date_to_str(TS_12_30_06)
 
 
-def set_up_testcase(app: flask.app.Flask) -> None:
-    with mock_datetime_now(TS_11_00_00, datetime):
+def set_up_users(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
+    with mock_datetime_now(timestamp, datetime):
         user0001_data = {'id': uuid.UUID(USER0001_USER_ID), 'name': 'USER0001', 'email': None,
                          'password': USER0001_PW_HASH, 'api_key': USER0001_KEY_HASH, 'role': Role.user, }
         user0002_data = {'id': uuid.UUID(USER0002_USER_ID), 'name': 'USER0002', 'email': None,
@@ -161,6 +165,9 @@ def set_up_testcase(app: flask.app.Flask) -> None:
                 db.session.add(user)
                 db.session.commit()
 
+
+def set_up_valid(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
+    with mock_datetime_now(timestamp, datetime):
         valid01_data = {'id': uuid.UUID(VALID01_ID), 'user_id': uuid.UUID(USER0001_USER_ID), 'start': None, 'end': None}
         valid02_data = {'id': uuid.UUID(VALID02_ID), 'user_id': uuid.UUID(USER0002_USER_ID), 'start': None, 'end': None}
         valid03_data = {'id': uuid.UUID(VALID03_ID), 'user_id': uuid.UUID(USER0003_USER_ID), 'start': None, 'end': None}
@@ -175,6 +182,8 @@ def set_up_testcase(app: flask.app.Flask) -> None:
         valid08_data = {'id': uuid.UUID(VALID08_ID), 'user_id': uuid.UUID(ACTOR0002_USER_ID), 'start': None,
                         'end': None}
 
+        created_updated_dict = {'created_at': datetime.datetime.now(), 'updated_at': datetime.datetime.now()}
+
         valid_data_list = [valid01_data, valid02_data, valid03_data, valid04_data, valid05_data, valid06_data,
                            valid07_data, valid08_data]
         valid_list = [Valid(**data, **created_updated_dict) for data in valid_data_list]
@@ -183,6 +192,9 @@ def set_up_testcase(app: flask.app.Flask) -> None:
                 db.session.add(valid)
                 db.session.commit()
 
+
+def set_up_scope(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
+    with mock_datetime_now(timestamp, datetime):
         scope01_data = {'id': uuid.UUID(SCOPE01_ID), 'user_id': uuid.UUID(ACTOR0001_USER_ID),
                         'actor_id': uuid.UUID(ACTOR0001_USER_ID), 'mode': Mode.read}
         scope02_data = {'id': uuid.UUID(SCOPE02_ID), 'user_id': uuid.UUID(ACTOR0002_USER_ID),
@@ -196,11 +208,29 @@ def set_up_testcase(app: flask.app.Flask) -> None:
         scope06_data = {'id': uuid.UUID(SCOPE06_ID), 'user_id': uuid.UUID(USER0003_USER_ID),
                         'actor_id': uuid.UUID(ACTOR0002_USER_ID), 'mode': Mode.write}
 
+        created_updated_dict = {'created_at': datetime.datetime.now(), 'updated_at': datetime.datetime.now()}
+
         scope_data_list = [scope01_data, scope02_data, scope03_data, scope04_data, scope05_data, scope06_data]
 
         scope_list = [Scope(**data, **created_updated_dict) for data in scope_data_list]
         with app.app_context():
             for valid in scope_list:
+                db.session.add(valid)
+                db.session.commit()
+
+
+def set_up_state(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
+    with mock_datetime_now(timestamp, datetime):
+        state01_data = {'id': uuid.UUID(STATE01_ID), 'begin': TS_12_30_03, 'end': TS_12_30_10}
+        state02_data = {'id': uuid.UUID(STATE02_ID), 'begin': TS_11_00_00, 'end': TS_12_29_00}
+
+        created_updated_dict = {'created_at': datetime.datetime.now(), 'updated_at': datetime.datetime.now()}
+
+        state_data_list = [state01_data, state02_data]
+
+        state_list = [State(**data, **created_updated_dict) for data in state_data_list]
+        with app.app_context():
+            for valid in state_list:
                 db.session.add(valid)
                 db.session.commit()
 
@@ -228,7 +258,10 @@ class TestApiFunctions(TestCase):
                     os.remove(db_path_file)
 
     def setUp(self):
-        set_up_testcase(self.app)
+        set_up_users(self.app, TS_11_00_00)
+        set_up_valid(self.app, TS_11_00_00)
+        set_up_scope(self.app, TS_11_00_00)
+        set_up_state(self.app, TS_11_00_00)
 
     def tearDown(self):
         pass
