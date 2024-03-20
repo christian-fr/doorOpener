@@ -1,3 +1,4 @@
+import datetime
 import secrets
 from hashlib import sha256
 
@@ -18,3 +19,7 @@ def check_pw(pw: bytes, hashed_pw: bytes) -> bool:
 
 def generate_api_key():
     return secrets.token_urlsafe(32)
+
+
+def now():
+    return datetime.datetime.now(tz=datetime.timezone.utc)

@@ -1,6 +1,9 @@
 import enum
 import uuid
 from sqlalchemy import func, text, Enum, sql
+
+import app.util.util
+# import app.api.util
 from app.extensions import db
 
 class Role(enum.Enum):
@@ -23,5 +26,5 @@ class Users(db.Model):
     signal_id = db.Column(db.String, nullable=True, unique=True)
     signal_phone_nr = db.Column(db.String, nullable=True, unique=True)
     api_key = db.Column(db.String(128), nullable=True, unique=True, default=None)
-    updated_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
-    created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    updated_at = db.Column(db.DateTime, nullable=False, default=app.util.util.now())
+    created_at = db.Column(db.DateTime, nullable=False, default=app.util.util.now())

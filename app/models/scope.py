@@ -1,6 +1,7 @@
 import enum
 import uuid
-from sqlalchemy import func, text, Enum, sql
+from sqlalchemy import func, text, Enum #  , sql
+
 from app.extensions import db
 
 
