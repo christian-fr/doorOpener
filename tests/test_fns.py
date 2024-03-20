@@ -256,29 +256,6 @@ def set_up_state(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
 
 
 class TestApiFunctions(TestCase):
-    # @classmethod
-    # def setUpClass(cls):
-    #     return
-    #     cls.app = create_app(config_class=Config)
-    #     with cls.app.app_context():
-    #         db.drop_all()
-    #         db.create_all()
-    #         db.session.commit()
-    #     cls.app_test = cls.app.test_client()
-
-    # @classmethod
-    # def tearDownClass(cls):
-    #     return
-    #     with cls.app.app_context():
-    #         db.drop_all()
-    #
-    #     if 'SQLALCHEMY_DATABASE_URI' in cls.app.config:
-    #         db_path = cls.app.config['SQLALCHEMY_DATABASE_URI']
-    #         if db_path.startswith('sqlite:///') and db_path.endswith('test.sqlite'):
-    #             db_path_file = Path(db_path[len('sqlite:///'):])
-    #             if db_path_file.exists():
-    #                 os.remove(db_path_file)
-
     def setUp(self):
         self.app = create_app(config_class=Config)
         with self.app.app_context():
@@ -321,8 +298,6 @@ class TestApiFunctions(TestCase):
             for ts in [TS_12_30_01, TS_12_30_02, TS_12_30_02, TS_12_30_03, TS_12_30_04, TS_12_30_05, TS_12_30_06,
                        TS_12_30_07, TS_12_30_08, TS_12_30_09, TS_12_30_10, TS_12_30_11, ]:
                 with mock_datetime_now(ts, datetime):
-                    a = (200, {ACTOR0002_USER_ID: (200, {'state': True})}) == get_state([ACTOR0002_USER_ID],
-                                                                                        ACTOR0002_KEY)
                     self.assertEqual((200, {ACTOR0002_USER_ID: (200, {'state': True})}),
                                      get_state([ACTOR0002_USER_ID], ACTOR0002_KEY))
 
