@@ -1,10 +1,10 @@
 import enum
 import uuid
-from sqlalchemy import func, text, Enum, sql
+from sqlalchemy import text, Enum
 
 import app.util.util
-# import app.api.util
 from app.extensions import db
+
 
 class Role(enum.Enum):
     deactivated = 0

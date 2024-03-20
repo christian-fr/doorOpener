@@ -8,12 +8,11 @@ from app import create_app, db
 
 from tests.context.testfixture_config import Config
 
-from tests.test_fns import (USER0001_KEY, USER0002_KEY, USER0003_KEY, ACTOR0001_KEY, ACTOR0002_KEY, ADMIN_KEY,
-                            TS_11_00_00,
-                            TS_12_29_00, TS_12_30_00, TS_12_30_01, TS_12_30_02, TS_12_30_03, TS_12_30_04, TS_12_30_05,
-                            TS_12_30_06, TS_12_30_07, TS_12_30_08, TS_12_30_09, TS_12_30_10, TS_12_30_11, TS_12_30_12,
-                            TS_12_31_00, TS_16_00_00, set_up_users, set_up_valid, set_up_scope, set_up_state,
-                            ACTOR0002_USER_ID, ACTOR0001_USER_ID, ACTOR0003_USER_ID, ACTOR0003_KEY)
+from tests.test_fns import (USER0002_KEY, ACTOR0001_KEY, ACTOR0002_KEY, TS_11_00_00, TS_12_29_00, TS_12_30_00,
+                            TS_12_30_01, TS_12_30_02, TS_12_30_03, TS_12_30_04, TS_12_30_05, TS_12_30_06, TS_12_30_07,
+                            TS_12_30_08, TS_12_30_09, TS_12_30_10, TS_12_30_11, TS_12_30_12, set_up_users, set_up_valid,
+                            set_up_scope, set_up_state, ACTOR0002_USER_ID, ACTOR0001_USER_ID, ACTOR0003_USER_ID,
+                            ACTOR0003_KEY)
 from tests.util.mock_datetime import mock_datetime_now
 
 

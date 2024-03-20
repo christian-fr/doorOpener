@@ -1,8 +1,5 @@
 import uuid
 from sqlalchemy import func
-
-# import app.api.util
-# import app.util.util
 from app.extensions import db
 
 

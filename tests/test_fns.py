@@ -1,7 +1,5 @@
 import datetime
 import os
-# import tempfile
-# import unittest.mock
 import uuid
 from pathlib import Path
 from unittest import TestCase
@@ -12,11 +10,10 @@ from app import create_app, db, Users, Valid, State
 from app.api.util import get_state, set_state
 from app.models.scope import Mode, Scope
 from app.models.users import Role
-from app.util.util import simple_hash, hash_salt_pw  # hash_salt_pw, check_pw,
+from app.util.util import simple_hash, hash_salt_pw
 from tests.context.testfixture_config import Config
 
 from tests.util.mock_datetime import mock_datetime_now
-from app.util.util import hashpw
 
 TS_11_00_00 = datetime.datetime(year=2024, month=2, day=20, hour=11, minute=0, second=0, tzinfo=datetime.timezone.utc)
 TS_12_29_00 = datetime.datetime(year=2024, month=2, day=20, hour=12, minute=29, second=0, tzinfo=datetime.timezone.utc)
@@ -96,15 +93,15 @@ ADMIN_KEY_HASH = simple_hash(ADMIN_KEY.encode('utf-8')).hex()
 ADMIN_PASSWORD = 'SuperSudo'
 ADMIN_PW_HASH = hash_salt_pw(ADMIN_PASSWORD.encode('utf-8'))
 
-for key, hash in [(USER0001_KEY, USER0001_KEY_HASH),
-                  (USER0002_KEY, USER0002_KEY_HASH),
-                  (USER0003_KEY, USER0003_KEY_HASH),
-                  (USER0004_KEY, USER0004_KEY_HASH),
-                  (USER0005_KEY, USER0005_KEY_HASH),
-                  (USER0006_KEY, USER0006_KEY_HASH),
-                  (DISABLED_KEY, DISABLED_KEY_HASH),
-                  (ADMIN_KEY, ADMIN_KEY_HASH)]:
-    assert simple_hash(key.encode('utf-8')).hex() == hash
+for key, hash_str in [(USER0001_KEY, USER0001_KEY_HASH),
+                      (USER0002_KEY, USER0002_KEY_HASH),
+                      (USER0003_KEY, USER0003_KEY_HASH),
+                      (USER0004_KEY, USER0004_KEY_HASH),
+                      (USER0005_KEY, USER0005_KEY_HASH),
+                      (USER0006_KEY, USER0006_KEY_HASH),
+                      (DISABLED_KEY, DISABLED_KEY_HASH),
+                      (ADMIN_KEY, ADMIN_KEY_HASH)]:
+    assert simple_hash(key.encode('utf-8')).hex() == hash_str
 
 VALID01_ID = 'c5026b88-7782-4dc3-b930-3c8121da7644'
 VALID02_ID = '5a15b116-6f48-4186-9c5b-b8240d5a8ff3'

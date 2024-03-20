@@ -4,8 +4,7 @@ from json import JSONDecodeError
 
 from flask import request
 
-from app.api.util import get_state, list_api_keys_helper, create_user_helper, create_api_key_helper, log, \
-    set_state
+from app.api.util import get_state, set_state, log
 from app.models.users import Role
 
 from app.api import bp
@@ -89,6 +88,8 @@ def get_door_state():
 
 @bp.route('/createUser', methods=['GET'])
 def create_user():
+    raise NotImplementedError
+
     if request.args.get('api-key') is None:
         return 'key missing'
     elif request.args.get('name') is None:
@@ -96,6 +97,7 @@ def create_user():
     elif request.args.get('role') is None:
         return 'role missing'
     else:
+
         if request.args.get('user-id') is not None:
             user_id = request.args.get('user-id')
         else:
@@ -106,6 +108,7 @@ def create_user():
         except KeyError:
             log(f'unkown role: {request.args.get('role')}')
             return 'role unkown'
+
         try:
             timeout = int(request.args.get('timeout')) if request.args.get('timeout') is not None else None
         except ValueError:
@@ -127,6 +130,7 @@ def create_api_key():
     elif request.args.get('user-id') is None:
         return 'user-id missing'
     else:
+        raise NotImplementedError()
         result = create_api_key_helper(request.args.get('api-key'), request.args.get('user-id'))
         return Response(
             response=json.dumps(result[1]),
@@ -140,6 +144,7 @@ def list_api_keys():
     if request.args.get('api-key') is None:
         return 'key missing'
     else:
+        raise NotImplementedError()
         result = list_api_keys_helper(request.args.get('api-key'))
         return Response(
             response=json.dumps(result[1]),
@@ -150,6 +155,8 @@ def list_api_keys():
 
 @bp.route('/setScope', methods=['GET'])
 def set_scope():
+    raise NotImplementedError()
+
     if request.args.get('api-key') is None:
         return 'api-key missing'
     elif request.args.get('user-id') is None:
@@ -162,11 +169,9 @@ def set_scope():
         user_id = request.args.get('user-id')
         actor_id = request.args.get('actor-id')
 
-        raise NotImplementedError()
-
         if actor_id not in user_db().keys():
             return 400, 'actor not found'
-        elif user_db()[actor_id]['role'] != Role.ACTOR:
+        elif user_db()[actor_id]['role'] != Role.actor:
             return 400, 'user with user-id is not an actor'
         else:
             all_permissions_for_user_actor = {k: v for k, v in permission_db().items() if
@@ -186,5 +191,3 @@ def set_scope():
                 status=200,
                 mimetype='application/json'
             )
-
-
