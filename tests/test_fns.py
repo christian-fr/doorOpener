@@ -5,12 +5,13 @@ from pathlib import Path
 from unittest import TestCase
 
 import flask
+from sqlalchemy import select
 
-from app import create_app, db, Users, Valid, State
-from app.api.util import get_state, set_state
+from app import create_app, db, User, Valid, State
+from app.api.util import get_state, set_state, add_user, add_scope
 from app.models.scope import Mode, Scope
-from app.models.users import Role
-from app.util.util import simple_hash, hash_salt_pw
+from app.models.user import Role
+from app.util.util import simple_hash, hash_salt_pw, generate_api_key
 from tests.context.testfixture_config import Config
 
 from tests.util.mock_datetime import mock_datetime_now
@@ -111,6 +112,8 @@ VALID05_ID = '3f68de07-f81f-4b10-a28d-2c235d1d72de'
 VALID06_ID = '0c59b73c-bd39-48bd-9d75-48d559202cde'
 VALID07_ID = '7cf580c4-22a1-4b9e-b3c1-08bc3421f18e'
 VALID08_ID = '5ef12355-55e4-4eb9-849d-92d3a3e1a2ef'
+VALID09_ID = '37d6f246-f575-43b4-b0c5-5525ef02b0f6'
+VALID10_ID = 'b6d8f316-3872-4dc1-ad30-1ba7ce86ace3'
 
 SCOPE01_ID = '6af8022f-3843-4f6d-aedf-82054bef1425'
 SCOPE02_ID = 'ad178135-5de5-4e8f-8c02-662a831f5ab2'
@@ -167,7 +170,7 @@ def set_up_users(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
                      actor0001_data, actor0002_data, actor0003_data, disabled_data, admin_data]
         created_updated_dict = {'created_at': datetime.datetime.now(), 'updated_at': datetime.datetime.now()}
 
-        user_list = [Users(**data, **created_updated_dict) for data in data_list]
+        user_list = [User(**data, **created_updated_dict) for data in data_list]
         with app.app_context():
             for user in user_list:
                 db.session.add(user)
@@ -189,11 +192,15 @@ def set_up_valid(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
                         'end': None}
         valid08_data = {'id': uuid.UUID(VALID08_ID), 'user_id': uuid.UUID(ACTOR0002_USER_ID), 'start': None,
                         'end': None}
+        valid09_data = {'id': uuid.UUID(VALID09_ID), 'user_id': uuid.UUID(ACTOR0003_USER_ID), 'start': None,
+                        'end': TS_12_30_11}
+        valid10_data = {'id': uuid.UUID(VALID10_ID), 'user_id': uuid.UUID(USER0004_USER_ID), 'start': None,
+                        'end': TS_12_30_11}
 
         created_updated_dict = {'created_at': datetime.datetime.now(), 'updated_at': datetime.datetime.now()}
 
         valid_data_list = [valid01_data, valid02_data, valid03_data, valid04_data, valid05_data, valid06_data,
-                           valid07_data, valid08_data]
+                           valid07_data, valid08_data, valid09_data, valid10_data]
         valid_list = [Valid(**data, **created_updated_dict) for data in valid_data_list]
         with app.app_context():
             for valid in valid_list:
@@ -339,19 +346,81 @@ class TestApiFunctions(TestCase):
                                         ACTOR0002_USER_ID: (200, {'state': True})}),
                                  get_state([ACTOR0001_USER_ID, ACTOR0002_USER_ID], ACTOR0002_KEY))
 
-            # get state for a wrong actor id
-            self.assertEqual((200, {'wxyz': (401, {'msg': 'malformed uuid string'})}),
-                             get_state(['wxyz'], ACTOR0001_KEY))
+            with mock_datetime_now(TS_12_30_11, datetime):
+                # get state for a wrong actor id
+                self.assertEqual((200, {'wxyz': (401, {'msg': 'malformed uuid string'})}),
+                                 get_state(['wxyz'], ACTOR0001_KEY))
 
-            # get state for an actor with no entries in state table
-            self.assertEqual((200, {ACTOR0003_USER_ID: (200, {'state': False})}),
-                             get_state([ACTOR0003_USER_ID], ACTOR0003_KEY))
+                # get state for an actor with no entries in state table
+                self.assertEqual((200, {ACTOR0003_USER_ID: (200, {'state': False})}),
+                                 get_state([ACTOR0003_USER_ID], ACTOR0003_KEY))
 
-            # get initial state for an existing actor id, but with a key that is lacking permission
-            self.assertEqual((200, {ACTOR0001_USER_ID: (403, {'msg': 'permission denied'})}),
-                             get_state([ACTOR0001_USER_ID], ACTOR0003_KEY))
+                # get initial state for an existing actor id, but with a key that is lacking permission
+                self.assertEqual((200, {ACTOR0001_USER_ID: (403, {'msg': 'permission denied'})}),
+                                 get_state([ACTOR0001_USER_ID], ACTOR0003_KEY))
 
-            # this is an unknown key
-            self.assertEqual((403, {'msg': 'access denied'}),
-                             get_state([ACTOR0001_USER_ID],
-                                       '9999d77d28bf4c53e13719136180dcef2d54c75b37b8a3553339859255731d9d'))
+            # get state with actor id that is currently valid
+            with mock_datetime_now(TS_12_30_11, datetime):
+                self.assertEqual((200, {ACTOR0003_USER_ID: (200, {'state': False})}),
+                                 get_state([ACTOR0003_USER_ID], ACTOR0003_KEY))
+            # get state with actor id that is currently invalid
+            with mock_datetime_now(TS_12_30_12, datetime):
+                self.assertEqual((403, {'msg': 'access denied'}),
+                                 get_state([ACTOR0003_USER_ID], ACTOR0003_KEY))
+
+            with mock_datetime_now(TS_12_30_11, datetime):
+                # this is an unknown key
+                self.assertEqual((403, {'msg': 'access denied'}),
+                                 get_state([ACTOR0001_USER_ID],
+                                           '9999d77d28bf4c53e13719136180dcef2d54c75b37b8a3553339859255731d9d'))
+
+    def test_add_user(self):
+        with (self.app.app_context()):
+            properties = [User.id, User.api_key, User.name, User.role]
+            query = select(*properties)
+            user_data_ex_ante = {user_data[0]: user_data[1:] for user_data in db.session.execute(query)}
+            rc, result_json = add_user(ADMIN_KEY, 'new User', role=Role.user)
+            self.assertEqual(200, rc)
+            api_key = result_json.pop('api_key')
+            self.assertEqual(len(generate_api_key()), len(api_key))
+            user_id = result_json.pop('user_id')
+            try:
+                uuid.UUID(user_id)
+            except ValueError:
+                self.fail(f'user_id is not uuid: {user_id}')
+            self.assertEqual({'msg': 'user created'}, result_json)
+
+            query = select(*properties)
+            user_data_ex_post = {user_data[0]: user_data[1:] for user_data in db.session.execute(query)}
+            new_user_key = set(user_data_ex_post.keys()).difference(user_data_ex_ante)
+            assert len(new_user_key) == 1
+            new_user_data = user_data_ex_post[list(new_user_key)[0]]
+            self.assertEqual(len(generate_api_key()), len(new_user_data[0]))
+            self.assertEqual('new User', new_user_data[1])
+            self.assertEqual(Role.user, new_user_data[2])
+
+    def test_add_scope(self):
+        with (self.app.app_context()):
+            properties = [Scope.id, Scope.user_id, Scope.actor_id, Scope.mode]
+            query = select(*properties)
+            scope_data_ex_ante = {scope_data[0]: scope_data[1:] for scope_data in db.session.execute(query)}
+            rc, result_json = add_scope(ADMIN_KEY, uuid.UUID(USER0006_USER_ID), uuid.UUID(ACTOR0003_USER_ID),
+                                        Mode.unset)
+            self.assertEqual(200, rc)
+            scope_id = result_json.pop('scope_id')
+            try:
+                uuid.UUID(scope_id)
+            except ValueError:
+                self.fail(f'scope_id is not uuid: {scope_id}')
+            self.assertEqual({'msg': 'scope created'}, result_json)
+
+            query = select(*properties)
+            scope_data_ex_post = {scope_data[0]: scope_data[1:] for scope_data in db.session.execute(query)}
+            new_scope_key = set(scope_data_ex_post.keys()).difference(scope_data_ex_ante)
+            assert len(new_scope_key) == 1
+            new_scope_data = scope_data_ex_post[list(new_scope_key)[0]]
+
+            self.assertEqual(uuid.UUID(USER0006_USER_ID), new_scope_data[0])
+            self.assertEqual(uuid.UUID(ACTOR0003_USER_ID), new_scope_data[1])
+            self.assertEqual(Mode.unset, new_scope_data[2])
+

@@ -8,8 +8,10 @@ from sqlalchemy import select
 from app.extensions import db
 from app.models.state import State
 from app.models.scope import Scope, Mode
-from app.models.users import Users
-from app.util.util import now, simple_hash
+from app.models.user import User, Role
+from app.models.valid import Valid
+from app.models.usage import Usage
+from app.util.util import now, simple_hash, generate_api_key
 
 QUERY_COUNTER: int = 0
 MODULO: int = 100
@@ -27,26 +29,8 @@ def check_and_increment():
     return QUERY_COUNTER % MODULO == 0
 
 
-# def generate_new_key():
-#     raise NotImplementedError()
-#     new_key = None
-#     while new_key is None or new_key in keys_db():
-#         new_key = str(uuid.uuid4())
-#     return new_key
-
-
-# def create_user_key(user_id: str):
-#     raise NotImplementedError()
-#     if user_id not in user_db():
-#         log(f'{user_id=} not found in user_db()')
-#         return 403, {'msg': 'db error'}
-#     new_key = generate_new_key()
-#     keys_db()[new_key] = {'user_id': user_id}
-#     return 200, {'msg': 'key created', 'api-key': new_key}
-
-
 def get_user_id_from_api_key(api_key: str) -> Optional[uuid.UUID]:
-    query = select(Users.id).where(Users.api_key == simple_hash(api_key.encode('utf-8')).hex())
+    query = select(User.id).where(User.api_key == simple_hash(api_key.encode('utf-8')).hex())
     with current_app.app_context():
         user_ids = [user_id for user_id in db.session.execute(query)]
     if user_ids:
@@ -63,6 +47,13 @@ def get_scopes_from_user_id(user_id: uuid.UUID) -> List[Tuple[uuid.UUID, uuid.UU
     return scope_tuples
 
 
+def get_role_from_user_id(user_id: uuid.UUID) -> List[Role]:
+    query = select(User.role).where(User.id == user_id)
+    with current_app.app_context():
+        user_role = [tuple(role_tuple) for role_tuple in db.session.execute(query)][0][0]
+    return user_role
+
+
 def get_state_from_actor_id(actor_id: uuid.UUID) \
         -> List[Tuple[uuid.UUID, datetime.datetime, datetime.datetime]]:
     query = select(State.id, State.begin, State.end).where(State.user_id == actor_id)
@@ -71,7 +62,7 @@ def get_state_from_actor_id(actor_id: uuid.UUID) \
     return state_tuples
 
 
-def eval_state(states_list: List[Tuple[uuid.UUID, datetime.datetime, datetime.datetime]]) -> bool:
+def eval_ts_list(states_list: List[Tuple[uuid.UUID, datetime.datetime, datetime.datetime]]) -> bool:
     ts_now = now()
     for _, start, end in states_list:
         ts_start = start if start is not None else TS_MIN
@@ -88,6 +79,33 @@ def eval_state(states_list: List[Tuple[uuid.UUID, datetime.datetime, datetime.da
     return False
 
 
+def get_valid_from_user_id(user_id: uuid.UUID) -> List[Tuple[uuid.UUID, datetime.datetime, datetime.datetime]]:
+    query = select(Valid.id, Valid.start, Valid.end).where(Valid.user_id == user_id)
+    with current_app.app_context():
+        valid_rows = [valid_tuple for valid_tuple in db.session.execute(query)]
+        return valid_rows
+
+
+def add_scope(api_key: str, user_id: uuid.UUID, actor_id: uuid.UUID, mode: Mode) -> Tuple[int, dict]:
+    admin_user_id = get_user_id_from_api_key(api_key)
+
+    if get_role_from_user_id(admin_user_id) == Role.admin:
+        scope_data = {'id': uuid.uuid4(), 'user_id': user_id, 'actor_id': actor_id, 'mode': mode.name,
+                      'created_at': now(), 'updated_at': now()}
+        with current_app.app_context():
+            db.session.add(Scope(**scope_data))
+            db.session.commit()
+        return 200, {'msg': 'scope created', 'scope_id': scope_data['id'].hex}
+    else:
+        log(f'user is not an admin: {user_id.hex=}; {api_key=}')
+        return 400, {'msg': 'permission denied'}
+
+
+def check_user_if_valid(user_id: uuid.UUID) -> bool:
+    valid_rows = get_valid_from_user_id(user_id)
+    return eval_ts_list(valid_rows)
+
+
 def set_state(actor_id_list: List[str], api_key: str) -> Tuple[int, dict]:
     if not isinstance(actor_id_list, list):
         log(f'malformed actors list: {actor_id_list}')
@@ -98,6 +116,11 @@ def set_state(actor_id_list: List[str], api_key: str) -> Tuple[int, dict]:
     if user_id is None:
         log(f'api key not found: {api_key}')
         return 403, {'msg': 'access denied'}
+    # check if users valid status
+    if not check_user_if_valid(user_id):
+        log(f'user currently not valid: {api_key=}, {user_id=}')
+        return 403, {'msg': 'access denied'}
+
     # get scope of user
     scopes = get_scopes_from_user_id(user_id)
     if not scopes:
@@ -133,6 +156,11 @@ def get_state(actor_id_list: List[str], api_key: str) \
     if user_id is None:
         log(f'api key not found: {api_key}')
         return 403, {'msg': 'access denied'}
+    # check if users valid status
+    if not check_user_if_valid(user_id):
+        log(f'user currently not valid: {api_key=}, {user_id=}')
+        return 403, {'msg': 'access denied'}
+
     # get scope of user
     scopes = get_scopes_from_user_id(user_id)
 
@@ -146,9 +174,10 @@ def get_state(actor_id_list: List[str], api_key: str) \
 
         if [s for s in scopes if s[1] == uuid.UUID(actor_id) and s[2] == Mode.read]:
             a = get_state_from_actor_id(uuid.UUID(actor_id))
-            if eval_state(a):
+            if eval_ts_list(a):
                 # state of actor is true
                 result[actor_id] = (200, {'state': True})
+                add_usage(actor_id)
             else:
                 # state of actor is false
                 result[actor_id] = (200, {'state': False})
@@ -158,90 +187,29 @@ def get_state(actor_id_list: List[str], api_key: str) \
     return 200, result
 
 
-# def list_api_keys_helper(admin_api_key: str) -> Tuple[int, Dict[str, Union[List[str], str]]]:
-#     raise NotImplementedError()
-#     if admin_api_key not in keys_db():
-#         return 403, {'msg': 'permission error'}
-#     else:
-#         user_id = keys_db()[admin_api_key]['user_id']
-#         if user_db()[user_id]['role'] != Role.ADMIN:
-#             return 403, {'msg': 'permission error'}
-#         else:
-#             return 200, {'api-keys-truncated': [k[:6] for k in keys_db().keys() if k != admin_api_key]}
+def add_usage(actor_id: str) -> None:
+    usage_data = {'id': uuid.uuid4(), 'actor_id': uuid.UUID(actor_id), 'timestamp': now(), 'created_at': now(),
+                  'updated_at': now()}
+    with current_app.app_context():
+        db.session.add(Usage(**usage_data))
+        db.session.commit()
 
 
-# def create_user_helper(api_key: str, name: str, role: Role, user_id: Optional[str] = None,
-#                        timeout: Optional[int] = None, valid_from: datetime.datetime = None,
-#                        valid_until: datetime.datetime = None) -> Tuple[int, Union[Dict[str, str], str]]:
-#     raise NotImplementedError()
-#     if 'user_id' is None:
-#         user_id = uuid.uuid4().hex
-#     if api_key in keys_db():
-#         api_user_id = keys_db()[api_key]['user_id']
-#         if user_db()[api_user_id]['role'] == Role.ADMIN:
-#             if user_id in user_db():
-#                 return 400, 'user id already present'
-#             else:
-#                 if valid_from is not None and valid_until is not None:
-#                     if valid_from > valid_until:
-#                         return 400, 'valid-from and valid-until invalid'
-#
-#                 if role in [Role.USER, Role.DISABLED]:
-#                     timeout = None
-#                 user_db()[user_id] = {'name': name, 'role': role, 'timeout': timeout, 'valid_from': valid_from,
-#                                       'valid_until': valid_until}
-#                 return 200, {'msg': 'user created', 'user-id': user_id}
-#         else:
-#             return 403, 'permission error'
+def add_user(api_key: str, name: str, role: Role, email: Optional[str] = None, password: Optional[str] = None,
+             valid_from: Optional[datetime.datetime] = None,
+             valid_until: Optional[datetime.datetime] = None) -> Tuple[int, dict]:
+    user_id = get_user_id_from_api_key(api_key)
 
-
-# def create_api_key_helper(api_key: str, user_id: str) -> Tuple[int, Union[Dict[str, str], str]]:
-#     raise NotImplementedError()
-#     if api_key in keys_db():
-#         api_user_id = keys_db()[api_key]['user_id']
-#         if user_db()[api_user_id]['role'] == Role.ADMIN:
-#             if user_id not in user_db():
-#                 return 403, 'user id not found'
-#             else:
-#                 api_key = gen_api_key()
-#                 keys_db()[api_key] = {'user_id': user_id}
-#                 return 200, {'msg': 'api key generated', 'api-key': api_key}
-#         else:
-#             return 403, 'permission error'
-
-
-# def get_entry_or_none(data: dict, key: str) -> Optional[str]:
-#     raise NotImplementedError
-#     if key in data.keys():
-#         result = data[key]
-#         assert isinstance(result, str)
-#         if result.strip() == '':
-#             return None
-#         return result
-#     else:
-#         return None
-
-#
-# def get_actor_state(user_id: str) -> Tuple[int, bool]:
-#     raise NotImplementedError()
-#     if user_id not in user_db():
-#         return 400, False
-#     elif user_id not in state_db():
-#         return 200, False
-#     else:
-#         if state_db()[user_id]['last_on'] is None:
-#             return 200, False
-#         else:
-#             # print(f"## {state_db()[user_id]['last_on'] - datetime.timedelta(seconds=2)}")
-#             # print(f"## {now()}")
-#             # print(f"## {state_db()[user_id]['last_on'] + datetime.timedelta(seconds=user_db()[user_id]['timeout'])}")
-#             # print(f"\n")
-#             # print(f"### {state_db()[user_id]['last_on'] - datetime.timedelta(
-#             #    seconds=2) < now() < state_db()[user_id]['last_on'] + datetime.timedelta(
-#             #    seconds=user_db()[user_id]['timeout'])}")
-#             return 200, state_db()[user_id]['last_on'] - datetime.timedelta(
-#                 seconds=2) < now() < state_db()[user_id]['last_on'] + datetime.timedelta(
-#                 seconds=user_db()[user_id]['timeout'])
+    if get_role_from_user_id(user_id) == Role.admin:
+        user_data = {'id': uuid.uuid4(), 'name': name, 'email': email, 'password': password, 'role': Role.user,
+                     'api_key': generate_api_key()}
+        with current_app.app_context():
+            db.session.add(User(**user_data))
+            db.session.commit()
+        return 200, {'msg': 'user created', 'user_id': user_data['id'].hex, 'api_key': user_data['api_key']}
+    else:
+        log(f'user is not an admin: {user_id.hex=}; {api_key=}')
+        return 400, {'msg': 'permission denied'}
 
 
 def sanitize_state_db() -> None:
@@ -258,24 +226,6 @@ def sanitize_state_db() -> None:
 
 def log(msg: str):
     print(msg)
-
-
-# def check_valid(user_id: str) -> bool:
-#     raise NotImplementedError()
-#     valid_intervals = [(v['from'] if v['from'] is not None else TS_MIN, v['to'] if v['to'] is not None else TS_MAX) for
-#                        v in valid_db().values() if v['user_id'] == user_id]
-#     for start, end in valid_intervals:
-#         if start < now() < end:
-#             return True
-#     return False
-
-
-# def get_all_actors(user_id: str, mode: str) -> List[str]:
-#     raise NotImplementedError()
-#     if set(mode) not in [set('r'), set('w'), set('rw')]:
-#         log(f'Invalid mode: {mode}')
-#         return []
-#     return [v['actor_id'] for v in permission_db().values() if v['user_id'] == user_id and v['mode'] == mode]
 
 
 def set_actor_state(actor_id: str, start: Optional[datetime.datetime],

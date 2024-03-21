@@ -4,10 +4,11 @@ import os
 import waitress
 from flask import Flask, request
 
-from app.models.users import Users
+from app.models.user import User
 from app.models.scope import Scope
 from app.models.state import State
 from app.models.valid import Valid
+from app.models.usage import Usage
 
 from app.extensions import db
 from config import Config

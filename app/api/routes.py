@@ -1,11 +1,12 @@
 import json
 import uuid
 from json import JSONDecodeError
+from typing import Optional
 
 from flask import request
 
-from app.api.util import get_state, set_state, log
-from app.models.users import Role
+from app.api.util import get_state, set_state, log, add_user
+from app.models.user import Role
 
 from app.api import bp
 from flask import Response
@@ -86,36 +87,32 @@ def get_door_state():
         )
 
 
-@bp.route('/createUser', methods=['GET'])
-def create_user():
-    raise NotImplementedError
+def json_response(status: int, msg: str, response: Optional[dict] = None) -> Response:
+    if response is None:
+        response = {}
+    Response(
+        response=json.dumps({**response, 'msg': msg}),
+        status=status,
+        mimetype='application/json'
+    )
 
+
+@bp.route('/addUser', methods=['GET'])
+def api_add_user():
     if request.args.get('api-key') is None:
-        return 'key missing'
+        return json_response(403, 'key missing')
     elif request.args.get('name') is None:
-        return 'name missing'
+        return json_response(404, 'name missing')
     elif request.args.get('role') is None:
-        return 'role missing'
+        return json_response(404, 'role missing')
     else:
-
-        if request.args.get('user-id') is not None:
-            user_id = request.args.get('user-id')
-        else:
-            user_id = str(uuid.uuid4())
-
         try:
             role = Role[request.args.get('role')]
         except KeyError:
             log(f'unkown role: {request.args.get('role')}')
-            return 'role unkown'
+            return json_response(404, 'role unkown')
 
-        try:
-            timeout = int(request.args.get('timeout')) if request.args.get('timeout') is not None else None
-        except ValueError:
-            log(f'invalid timeout: {request.args.get('timeout')}')
-            return 'invalid timeout value'
-
-        result = create_user_helper(request.args.get('api-key'), request.args.get('name'), role, user_id, timeout)
+        result = add_user(request.args.get('api-key'), request.args.get('name'), role)
         return Response(
             response=json.dumps(result[1]),
             status=result[0],

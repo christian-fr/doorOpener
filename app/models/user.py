@@ -17,7 +17,7 @@ class Role(enum.Enum):
         return self.name
 
 
-class Users(db.Model):
+class User(db.Model):
     id = db.Column(db.Uuid, primary_key=True, default=uuid.uuid4)
     name = db.Column(db.String, nullable=False, unique=True)
     role = db.Column(Enum(Role), nullable=False, server_default=text(Role.guest.name))
