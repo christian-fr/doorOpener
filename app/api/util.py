@@ -1,3 +1,4 @@
+import base64
 import datetime
 import uuid
 from typing import List, Tuple, Dict, Union, Optional
@@ -11,7 +12,7 @@ from app.models.scope import Scope, Mode
 from app.models.user import User, Role
 from app.models.valid import Valid
 from app.models.usage import Usage
-from app.util.util import now, simple_hash, generate_api_key
+from app.util.util import now, generate_api_key, simple_hash_str
 
 QUERY_COUNTER: int = 0
 MODULO: int = 100
@@ -30,12 +31,12 @@ def check_and_increment():
 
 
 def get_user_id_from_api_key(api_key: str) -> Optional[uuid.UUID]:
-    query = select(User.id).where(User.api_key == simple_hash(api_key.encode('utf-8')).hex())
+    query = select(User.id).where(User.api_key == simple_hash_str(api_key))
     with current_app.app_context():
         user_ids = [user_id for user_id in db.session.execute(query)]
     if user_ids:
         if len(user_ids) > 1:
-            log(f'api key "{simple_hash(api_key.encode('utf-8')).hex()}" found in more than one user row')
+            log(f'api key "{simple_hash_str(api_key)}" found in more than one user row')
         return user_ids[0][0]
     return None
 
@@ -195,21 +196,38 @@ def add_usage(actor_id: str) -> None:
         db.session.commit()
 
 
-def add_user(api_key: str, name: str, role: Role, email: Optional[str] = None, password: Optional[str] = None,
-             valid_from: Optional[datetime.datetime] = None,
-             valid_until: Optional[datetime.datetime] = None) -> Tuple[int, dict]:
+def add_valid(api_key: str, user_id: uuid.UUID, start: Optional[datetime.datetime] = None,
+              end: Optional[datetime.datetime] = None) -> Tuple[int, dict]:
+    admin_id = get_user_id_from_api_key(api_key)
+
+    if get_role_from_user_id(admin_id) != Role.admin:
+        log(f'user is not an admin: {admin_id.hex=}; {api_key=}')
+        return 400, {'msg': 'permission denied'}
+    else:
+        valid_data = {'id': uuid.uuid4(), 'user_id': user_id, 'start': start, 'end': end,
+                      'created_at': now(),
+                      'updated_at': now()}
+        with current_app.app_context():
+            db.session.add(Valid(**valid_data))
+            db.session.commit()
+        return 200, {'msg': 'valid created', 'valid_id': valid_data['id'].hex}
+
+
+def add_user(api_key: str, name: str, role: Role, email: Optional[str] = None, password: Optional[str] = None) \
+        -> Tuple[int, dict]:
     user_id = get_user_id_from_api_key(api_key)
 
-    if get_role_from_user_id(user_id) == Role.admin:
+    if get_role_from_user_id(user_id) != Role.admin:
+        log(f'user is not an admin: {user_id.hex=}; {api_key=}')
+        return 400, {'msg': 'permission denied'}
+    else:
+        api_key_raw = generate_api_key()
         user_data = {'id': uuid.uuid4(), 'name': name, 'email': email, 'password': password, 'role': Role.user,
-                     'api_key': generate_api_key()}
+                     'api_key': simple_hash_str(api_key_raw)}
         with current_app.app_context():
             db.session.add(User(**user_data))
             db.session.commit()
-        return 200, {'msg': 'user created', 'user_id': user_data['id'].hex, 'api_key': user_data['api_key']}
-    else:
-        log(f'user is not an admin: {user_id.hex=}; {api_key=}')
-        return 400, {'msg': 'permission denied'}
+        return 200, {'msg': 'user created', 'user_id': user_data['id'].hex, 'api_key': api_key_raw}
 
 
 def sanitize_state_db() -> None:

@@ -1,15 +1,18 @@
 import datetime
 import json
 import uuid
-from pathlib import Path
+# from pathlib import Path
 from unittest import TestCase
-import os
+# import os
 
 from sqlalchemy import select
 
 from app import create_app, db
 from app.models.user import User, Role
-from app.util.util import generate_api_key
+from app.models.scope import Scope, Mode
+from app.models.valid import Valid
+from app.models.usage import Usage
+from app.util.util import generate_api_key, simple_hash_str
 
 from tests.context.testfixture_config import Config
 
@@ -17,7 +20,7 @@ from tests.test_fns import (USER0002_KEY, ACTOR0001_KEY, ACTOR0002_KEY, TS_11_00
                             TS_12_30_01, TS_12_30_02, TS_12_30_03, TS_12_30_04, TS_12_30_05, TS_12_30_06, TS_12_30_07,
                             TS_12_30_08, TS_12_30_09, TS_12_30_10, TS_12_30_11, TS_12_30_12, set_up_users, set_up_valid,
                             set_up_scope, set_up_state, ACTOR0002_USER_ID, ACTOR0001_USER_ID, ACTOR0003_USER_ID,
-                            ACTOR0003_KEY, ADMIN_KEY)
+                            ACTOR0003_KEY, ADMIN_KEY, USER0006_KEY, USER0006_USER_ID)
 from tests.util.mock_datetime import mock_datetime_now
 
 
@@ -231,33 +234,112 @@ class TestApiEndpoints(TestCase):
             new_user_key = set(user_data_ex_post.keys()).difference(user_data_ex_ante)
             assert len(new_user_key) == 1
             new_user_data = user_data_ex_post[list(new_user_key)[0]]
-            self.assertEqual(len(generate_api_key()), len(new_user_data[0]))
+            self.assertEqual(len(simple_hash_str(generate_api_key())), len(new_user_data[0]))
             self.assertEqual('new User', new_user_data[1])
             self.assertEqual(Role.user, new_user_data[2])
 
-    def test_add_scop(self):
-        self.fail()
-
+    def test_add_scope(self):
         with (self.app.app_context()):
             properties = [Scope.id, Scope.user_id, Scope.actor_id, Scope.mode]
             query = select(*properties)
             scope_data_ex_ante = {scope_data[0]: scope_data[1:] for scope_data in db.session.execute(query)}
-            rc, result_json = add_scope(ADMIN_KEY, uuid.UUID(USER0006_USER_ID), uuid.UUID(ACTOR0003_USER_ID),
-                                        Mode.unset)
-            self.assertEqual(200, rc)
-            scope_id = result_json.pop('scope_id')
+
+            query_string = {'api-key': ADMIN_KEY, 'user-id': USER0006_USER_ID, 'actor-id': ACTOR0003_USER_ID,
+                            'mode': Mode.write}
+            response = self.app_test.get('/api/addScope', query_string=query_string, follow_redirects=True)
+            response_json = response.json.copy()
+            self.assertEqual(200, response.status_code)
+
+            scope_id = response_json.pop('scope_id')
             try:
                 uuid.UUID(scope_id)
             except ValueError:
-                self.fail(f'scope_id is not uuid: {scope_id}')
-            self.assertEqual({'msg': 'scope created'}, result_json)
+                self.fail(f'user_id is not a uuid: {scope_id}')
+            self.assertEqual({'msg': 'scope created'}, response_json)
 
             query = select(*properties)
             scope_data_ex_post = {scope_data[0]: scope_data[1:] for scope_data in db.session.execute(query)}
+
             new_scope_key = set(scope_data_ex_post.keys()).difference(scope_data_ex_ante)
             assert len(new_scope_key) == 1
             new_scope_data = scope_data_ex_post[list(new_scope_key)[0]]
-
             self.assertEqual(uuid.UUID(USER0006_USER_ID), new_scope_data[0])
             self.assertEqual(uuid.UUID(ACTOR0003_USER_ID), new_scope_data[1])
-            self.assertEqual(Mode.unset, new_scope_data[2])
+            self.assertEqual(Mode.write, new_scope_data[2])
+
+    def test_add_valid(self):
+        with (self.app.app_context()):
+            properties = [Valid.id, Valid.user_id, Valid.start, Valid.end]
+            query = select(*properties)
+            valid_data_ex_ante = {valid_data[0]: valid_data[1:] for valid_data in db.session.execute(query)}
+
+            query_string = {'api-key': ADMIN_KEY, 'user-id': USER0006_USER_ID, 'start': None,
+                            'end': TS_12_30_07}
+            response = self.app_test.get('/api/addValid', query_string=query_string, follow_redirects=True)
+            response_json = response.json.copy()
+            self.assertEqual(200, response.status_code)
+
+            valid_id = response_json.pop('valid_id')
+            try:
+                uuid.UUID(valid_id)
+            except ValueError:
+                self.fail(f'user_id is not a uuid: {valid_id}')
+            self.assertEqual({'msg': 'valid created'}, response_json)
+
+            query = select(*properties)
+            valid_data_ex_post = {valid_data[0]: valid_data[1:] for valid_data in db.session.execute(query)}
+
+            new_valid_key = set(valid_data_ex_post.keys()).difference(valid_data_ex_ante)
+            assert len(new_valid_key) == 1
+            new_valid_data = valid_data_ex_post[list(new_valid_key)[0]]
+            self.assertEqual(uuid.UUID(USER0006_USER_ID), new_valid_data[0])
+            self.assertEqual(uuid.UUID(ACTOR0003_USER_ID), new_valid_data[1])
+            self.assertEqual(Mode.write, new_valid_data[2])
+
+    def test_new_user_new_actor_new_scope_new_valid(self):
+        with (self.app.app_context()):
+            with mock_datetime_now(TS_12_29_00, datetime):
+                query_string = {'api-key': ADMIN_KEY,
+                                'name': 'new User', 'role': Role.user.name}
+                response = self.app_test.get('/api/addUser', query_string=query_string, follow_redirects=True)
+                response_json = response.json.copy()
+                self.assertEqual(200, response.status_code)
+
+                user_id = response_json.pop('user_id')
+                user_api_key = response_json.pop('api_key')
+
+                query_string = {'api-key': ADMIN_KEY,
+                                'name': 'new Actor', 'role': Role.actor.name}
+                response2 = self.app_test.get('/api/addUser', query_string=query_string, follow_redirects=True)
+                response2_json = response2.json.copy()
+                self.assertEqual(200, response2.status_code)
+
+                actor_id = response2_json.pop('user_id')
+                actor_api_key = response2_json.pop('api_key')
+
+                query_string = {'api-key': ADMIN_KEY, 'user-id': user_id, 'actor-id': actor_id, 'mode': Mode.write}
+                response3 = self.app_test.get('/api/addScope', query_string=query_string, follow_redirects=True)
+                response3_json = response3.json.copy()
+                self.assertEqual(200, response3.status_code)
+
+                scope_id = response3_json.pop('scope_id')
+
+                query_string = {'api-key': ADMIN_KEY, 'user-id': actor_id, 'actor-id': actor_id, 'mode': Mode.read}
+                response4 = self.app_test.get('/api/addScope', query_string=query_string, follow_redirects=True)
+                response4_json = response4.json.copy()
+                self.assertEqual(200, response4.status_code)
+
+                scope2_id = response4_json.pop('scope_id')
+
+                with mock_datetime_now(TS_12_30_01, datetime):
+                    query_string = {'api-key': actor_api_key, 'actors': json.dumps([actor_id])}
+                    response = self.app_test.get('/api/getState', query_string=query_string, follow_redirects=True)
+                    self.assertEqual(200, response.status_code)
+                    self.assertEqual({ACTOR0001_USER_ID: [200, {'state': False}]}, response.json)
+
+                    query_string = {'api-key': user_api_key, 'actors': json.dumps([actor_id])}
+                    response = self.app_test.get('/api/setState', query_string=query_string, follow_redirects=True)
+                    self.assertEqual(200, response.status_code)
+                    self.assertEqual({ACTOR0001_USER_ID: [200, {'state': False}]}, response.json)
+
+                pass

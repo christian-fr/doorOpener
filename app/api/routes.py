@@ -5,7 +5,8 @@ from typing import Optional
 
 from flask import request
 
-from app.api.util import get_state, set_state, log, add_user
+from app.api.util import get_state, set_state, log, add_user, add_scope, add_valid
+from app.models.scope import Mode
 from app.models.user import Role
 
 from app.api import bp
@@ -113,6 +114,56 @@ def api_add_user():
             return json_response(404, 'role unkown')
 
         result = add_user(request.args.get('api-key'), request.args.get('name'), role)
+        return Response(
+            response=json.dumps(result[1]),
+            status=result[0],
+            mimetype='application/json'
+        )
+
+
+@bp.route('/addValid', methods=['GET'])
+def api_add_valid():
+    if request.args.get('api-key') is None:
+        return json_response(403, 'key missing')
+    elif request.args.get('user-id') is None:
+        return json_response(404, 'user-id missing')
+    elif request.args.get('start') is None:
+        return json_response(404, 'start missing')
+    elif request.args.get('end') is None:
+        return json_response(404, 'end missing')
+    else:
+        result = add_valid(request.args.get('api-key'), uuid.UUID(request.args.get('user-id')),
+                           request.args.get('start'), request.args.get('end'), )
+        return Response(
+            response=json.dumps(result[1]),
+            status=result[0],
+            mimetype='application/json'
+        )
+
+
+@bp.route('/addScope', methods=['GET'])
+def api_add_scope():
+    api_key = request.args.get('api-key')
+    user_id = request.args.get('user-id')
+    actor_id = request.args.get('actor-id')
+    mode = request.args.get('mode')
+
+    if api_key is None:
+        return json_response(403, 'key missing')
+    elif user_id is None:
+        return json_response(404, 'user id missing')
+    elif actor_id is None:
+        return json_response(404, 'actor id missing')
+    elif mode is None:
+        return json_response(404, 'mode missing')
+    else:
+        try:
+            mode = Mode[mode]
+        except KeyError:
+            log(f'unkown mode: {mode}')
+            return json_response(404, 'mode unkown')
+
+        result = add_scope(api_key, uuid.UUID(user_id), uuid.UUID(actor_id), mode)
         return Response(
             response=json.dumps(result[1]),
             status=result[0],

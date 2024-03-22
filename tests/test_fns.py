@@ -1,19 +1,15 @@
 import datetime
-import os
-import tempfile
 import uuid
-from pathlib import Path
 from unittest import TestCase
 
 import flask
-import werkzeug
 from sqlalchemy import select
 
 from app import create_app, db, User, Valid, State
-from app.api.util import get_state, set_state, add_user, add_scope
+from app.api.util import get_state, set_state, add_user, add_scope, add_valid
 from app.models.scope import Mode, Scope
 from app.models.user import Role
-from app.util.util import simple_hash, hash_salt_pw, generate_api_key
+from app.util.util import simple_hash_str, hash_salt_pw_str, generate_api_key
 from tests.context.testfixture_config import Config
 
 from tests.util.mock_datetime import mock_datetime_now
@@ -38,63 +34,63 @@ TS_16_00_00 = datetime.datetime(year=2024, month=2, day=20, hour=16, minute=0, s
 
 ACTOR0001_USER_ID = '1dad0dc3-f862-4b41-9608-2ee1fa3050c2'
 ACTOR0001_KEY = '9a9893b036fd1708c518467a203de7405184feff1c2eb315ee8099cd8fedab58'
-ACTOR0001_KEY_HASH = simple_hash(ACTOR0001_KEY.encode('utf-8')).hex()
+ACTOR0001_KEY_HASH = simple_hash_str(ACTOR0001_KEY)
 
 ACTOR0002_USER_ID = 'd526569c-4743-4d3e-a742-128051f63f72'
 ACTOR0002_KEY = 'f160e336939ee5b8ed3206962c488fc5be3f6e35a3ca92fc170e80657958bda3'
-ACTOR0002_KEY_HASH = simple_hash(ACTOR0002_KEY.encode('utf-8')).hex()
+ACTOR0002_KEY_HASH = simple_hash_str(ACTOR0002_KEY)
 
 ACTOR0003_USER_ID = 'df809f8d-7689-439c-8dc8-d73d1d49e562'
 ACTOR0003_KEY = 'dc684777eb8a2edea57cbf7ca85c3799d6064e0ee6c307a24f182fa32cebd697'
-ACTOR0003_KEY_HASH = simple_hash(ACTOR0003_KEY.encode('utf-8')).hex()
+ACTOR0003_KEY_HASH = simple_hash_str(ACTOR0003_KEY)
 
 USER0001_USER_ID = '1f4a6f9c-af4a-4a32-976d-e86a1487ec43'
 USER0001_KEY = '052b3945b6913a005c74c52d0a2c48cfc7c10207db775d51950a21bc12dcc472'
-USER0001_KEY_HASH = simple_hash(USER0001_KEY.encode('utf-8')).hex()
+USER0001_KEY_HASH = simple_hash_str(USER0001_KEY)
 USER0001_PASSWORD = 'SonneMondUndSterne'
-USER0001_PW_HASH = hash_salt_pw(USER0001_PASSWORD.encode('utf-8'))
+USER0001_PW_HASH = hash_salt_pw_str(USER0001_PASSWORD)
 
 USER0002_USER_ID = '72031898-24eb-46d4-b4de-40355517ef8e'
 USER0002_KEY = '781bd77d28bf4c53e13719136180dcef2d54c75b37b8a3553339859255731d9d'
-USER0002_KEY_HASH = simple_hash(USER0002_KEY.encode('utf-8')).hex()
+USER0002_KEY_HASH = simple_hash_str(USER0002_KEY)
 USER0002_PASSWORD = 'OneAndOneAndOneIsThree'
-USER0002_PW_HASH = hash_salt_pw(USER0002_PASSWORD.encode('utf-8'))
+USER0002_PW_HASH = hash_salt_pw_str(USER0002_PASSWORD)
 
 USER0003_USER_ID = 'd8977529-31bd-4f3e-b24c-91f31d962487'
 USER0003_KEY = '8c267d03891a23661ec3e89dbed546297cb86bae05d4767ff01cc0b1616d3499'
-USER0003_KEY_HASH = simple_hash(USER0003_KEY.encode('utf-8')).hex()
+USER0003_KEY_HASH = simple_hash_str(USER0003_KEY)
 USER0003_PASSWORD = 'RocknRoll'
-USER0003_PW_HASH = hash_salt_pw(USER0003_PASSWORD.encode('utf-8'))
+USER0003_PW_HASH = hash_salt_pw_str(USER0003_PASSWORD)
 
 USER0004_USER_ID = 'c100c404-4f65-4a23-b5d9-0979dad67fec'
 USER0004_KEY = '58a0d55f80247f4b554dcae9ad274b8e96105519cd87a344bb017f42cc762b86'
-USER0004_KEY_HASH = simple_hash(USER0004_KEY.encode('utf-8')).hex()
+USER0004_KEY_HASH = simple_hash_str(USER0004_KEY)
 USER0004_PASSWORD = 'AlleMeineEntchen'
-USER0004_PW_HASH = hash_salt_pw(USER0004_PASSWORD.encode('utf-8'))
+USER0004_PW_HASH = hash_salt_pw_str(USER0004_PASSWORD)
 
 USER0005_USER_ID = '17b6909f-565f-4416-a587-3a8791aef0e7'
 USER0005_KEY = '961e67183206708d327ae766e6ac34f6ac0c082e0af8763ca8e8d3228496259a'
-USER0005_KEY_HASH = simple_hash(USER0005_KEY.encode('utf-8')).hex()
+USER0005_KEY_HASH = simple_hash_str(USER0005_KEY)
 USER0005_PASSWORD = 'JingleBellsRock'
-USER0005_PW_HASH = hash_salt_pw(USER0005_PASSWORD.encode('utf-8'))
+USER0005_PW_HASH = hash_salt_pw_str(USER0005_PASSWORD)
 
 USER0006_USER_ID = '9f1b6399-f051-44c3-bab3-1a4b8eb81e28'
 USER0006_KEY = '535b4e070c23cca91a2044258b2f8cbabe7c58c5fe18f7a88d13c85a3c8db068'
-USER0006_KEY_HASH = simple_hash(USER0006_KEY.encode('utf-8')).hex()
+USER0006_KEY_HASH = simple_hash_str(USER0006_KEY)
 USER0006_PASSWORD = 'SuesserDieGlockenNieKlingen'
-USER0006_PW_HASH = hash_salt_pw(USER0006_PASSWORD.encode('utf-8'))
+USER0006_PW_HASH = hash_salt_pw_str(USER0006_PASSWORD)
 
 DISABLED_USER_ID = '4c86f252-7d14-4776-a9a7-2e85e23b4f69'
 DISABLED_KEY = '9c1e953d91c1bf590dcb2a6011d8f0370fd0df12baea0adfd536175596f10d43'
-DISABLED_KEY_HASH = simple_hash(DISABLED_KEY.encode('utf-8')).hex()
+DISABLED_KEY_HASH = simple_hash_str(DISABLED_KEY)
 DISABLED_PASSWORD = 'KeinSchoenerLand'
-DISABLED_PW_HASH = hash_salt_pw(DISABLED_PASSWORD.encode('utf-8'))
+DISABLED_PW_HASH = hash_salt_pw_str(DISABLED_PASSWORD)
 
 ADMIN_USER_ID = '32546de6-7c94-41b8-812b-4f5786b71e1c'
 ADMIN_KEY = '98cfefb9d2c1477b3d98ebd19ec7a69bc0f82ce81a1ee88fcbdfe07a7681a829'
-ADMIN_KEY_HASH = simple_hash(ADMIN_KEY.encode('utf-8')).hex()
+ADMIN_KEY_HASH = simple_hash_str(ADMIN_KEY)
 ADMIN_PASSWORD = 'SuperSudo'
-ADMIN_PW_HASH = hash_salt_pw(ADMIN_PASSWORD.encode('utf-8'))
+ADMIN_PW_HASH = hash_salt_pw_str(ADMIN_PASSWORD)
 
 for key, hash_str in [(USER0001_KEY, USER0001_KEY_HASH),
                       (USER0002_KEY, USER0002_KEY_HASH),
@@ -104,7 +100,7 @@ for key, hash_str in [(USER0001_KEY, USER0001_KEY_HASH),
                       (USER0006_KEY, USER0006_KEY_HASH),
                       (DISABLED_KEY, DISABLED_KEY_HASH),
                       (ADMIN_KEY, ADMIN_KEY_HASH)]:
-    assert simple_hash(key.encode('utf-8')).hex() == hash_str
+    assert simple_hash_str(key) == hash_str
 
 VALID01_ID = 'c5026b88-7782-4dc3-b930-3c8121da7644'
 VALID02_ID = '5a15b116-6f48-4186-9c5b-b8240d5a8ff3'
@@ -391,9 +387,57 @@ class TestApiFunctions(TestCase):
             new_user_key = set(user_data_ex_post.keys()).difference(user_data_ex_ante)
             assert len(new_user_key) == 1
             new_user_data = user_data_ex_post[list(new_user_key)[0]]
-            self.assertEqual(len(generate_api_key()), len(new_user_data[0]))
+            self.assertEqual(len(simple_hash_str(generate_api_key())), len(new_user_data[0]))
             self.assertEqual('new User', new_user_data[1])
             self.assertEqual(Role.user, new_user_data[2])
+
+    def test_add_valid01(self):
+        with (self.app.app_context()):
+            properties = [Valid.id, Valid.user_id, Valid.start, Valid.end]
+            query = select(*properties)
+            valid_data_ex_ante = {valid_data[0]: valid_data[1:] for valid_data in db.session.execute(query)}
+
+            rc, result_json = add_valid(ADMIN_KEY, uuid.UUID(USER0003_USER_ID), TS_12_30_02, TS_12_30_06)
+            self.assertEqual(200, rc)
+            valid_id = result_json.pop('valid_id')
+            try:
+                uuid.UUID(valid_id)
+            except ValueError:
+                self.fail(f'valid_id is not uuid: {valid_id}')
+            self.assertEqual({'msg': 'valid created'}, result_json)
+
+            query = select(*properties)
+            valid_data_ex_post = {valid_data[0]: valid_data[1:] for valid_data in db.session.execute(query)}
+            new_user_key = set(valid_data_ex_post.keys()).difference(valid_data_ex_ante)
+            assert len(new_user_key) == 1
+            new_valid_data = valid_data_ex_post[list(new_user_key)[0]]
+            self.assertTrue(isinstance(new_valid_data[0], uuid.UUID))
+            self.assertEqual(TS_12_30_02, new_valid_data[1].replace(tzinfo=datetime.timezone.utc))
+            self.assertEqual(TS_12_30_06, new_valid_data[2].replace(tzinfo=datetime.timezone.utc))
+
+    def test_add_valid02(self):
+        with (self.app.app_context()):
+            properties = [Valid.id, Valid.user_id, Valid.start, Valid.end]
+            query = select(*properties)
+            valid_data_ex_ante = {valid_data[0]: valid_data[1:] for valid_data in db.session.execute(query)}
+
+            rc, result_json = add_valid(ADMIN_KEY, uuid.UUID(USER0003_USER_ID), TS_12_30_02, None)
+            self.assertEqual(200, rc)
+            valid_id = result_json.pop('valid_id')
+            try:
+                uuid.UUID(valid_id)
+            except ValueError:
+                self.fail(f'valid_id is not uuid: {valid_id}')
+            self.assertEqual({'msg': 'valid created'}, result_json)
+
+            query = select(*properties)
+            valid_data_ex_post = {valid_data[0]: valid_data[1:] for valid_data in db.session.execute(query)}
+            new_user_key = set(valid_data_ex_post.keys()).difference(valid_data_ex_ante)
+            assert len(new_user_key) == 1
+            new_valid_data = valid_data_ex_post[list(new_user_key)[0]]
+            self.assertTrue(isinstance(new_valid_data[0], uuid.UUID))
+            self.assertEqual(TS_12_30_02, new_valid_data[1].replace(tzinfo=datetime.timezone.utc))
+            self.assertIsNone(new_valid_data[2])
 
     def test_add_scope(self):
         with (self.app.app_context()):
