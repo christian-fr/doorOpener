@@ -1,10 +1,12 @@
 import datetime
 import os
+import tempfile
 import uuid
 from pathlib import Path
 from unittest import TestCase
 
 import flask
+import werkzeug
 from sqlalchemy import select
 
 from app import create_app, db, User, Valid, State
@@ -261,12 +263,11 @@ def set_up_state(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
 
 class TestApiFunctions(TestCase):
     def setUp(self):
-        self.app = create_app(config_class=Config)
-        with self.app.app_context():
-            db.drop_all()
-            db.create_all()
-            db.session.commit()
+        self.app = create_app(config_class=Config.get_cls())
         self.app_test = self.app.test_client()
+
+        with self.app.app_context():
+            db.create_all()
 
         set_up_users(self.app, TS_11_00_00)
         set_up_valid(self.app, TS_11_00_00)
@@ -274,14 +275,9 @@ class TestApiFunctions(TestCase):
 
     def tearDown(self):
         with self.app.app_context():
-            db.drop_all()
-
-        if 'SQLALCHEMY_DATABASE_URI' in self.app.config:
-            db_path = self.app.config['SQLALCHEMY_DATABASE_URI']
-            if db_path.startswith('sqlite:///') and db_path.endswith('test.sqlite'):
-                db_path_file = Path(db_path[len('sqlite:///'):])
-                if db_path_file.exists():
-                    os.remove(db_path_file)
+            db.session.close()
+            db.engine.dispose()
+        Config.TEMP_DIR.cleanup()
 
     def test_set_state(self):
         with self.app.app_context():
@@ -423,4 +419,3 @@ class TestApiFunctions(TestCase):
             self.assertEqual(uuid.UUID(USER0006_USER_ID), new_scope_data[0])
             self.assertEqual(uuid.UUID(ACTOR0003_USER_ID), new_scope_data[1])
             self.assertEqual(Mode.unset, new_scope_data[2])
-
