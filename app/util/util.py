@@ -1,4 +1,3 @@
-import base64
 import datetime
 import secrets
 from hashlib import sha256
