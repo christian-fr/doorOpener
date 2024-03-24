@@ -1,4 +1,3 @@
-import base64
 import datetime
 import uuid
 from typing import List, Tuple, Dict, Union, Optional
@@ -45,6 +44,7 @@ def get_scopes_from_user_id(user_id: uuid.UUID) -> List[Tuple[uuid.UUID, uuid.UU
     query = select(Scope.id, Scope.actor_id, Scope.mode).where(Scope.user_id == user_id)
     with current_app.app_context():
         scope_tuples = [tuple(scope_tuple) for scope_tuple in db.session.execute(query)]
+    # noinspection PyTypeChecker
     return scope_tuples
 
 
@@ -60,6 +60,7 @@ def get_state_from_actor_id(actor_id: uuid.UUID) \
     query = select(State.id, State.begin, State.end).where(State.user_id == actor_id)
     with current_app.app_context():
         state_tuples = [tuple(state_tuple) for state_tuple in db.session.execute(query)]
+    # noinspection PyTypeChecker
     return state_tuples
 
 
@@ -87,19 +88,10 @@ def get_valid_from_user_id(user_id: uuid.UUID) -> List[Tuple[uuid.UUID, datetime
         return valid_rows
 
 
-def add_scope(api_key: str, user_id: uuid.UUID, actor_id: uuid.UUID, mode: Mode) -> Tuple[int, dict]:
-    admin_user_id = get_user_id_from_api_key(api_key)
-
-    if get_role_from_user_id(admin_user_id) == Role.admin:
-        scope_data = {'id': uuid.uuid4(), 'user_id': user_id, 'actor_id': actor_id, 'mode': mode.name,
-                      'created_at': now(), 'updated_at': now()}
-        with current_app.app_context():
-            db.session.add(Scope(**scope_data))
-            db.session.commit()
-        return 200, {'msg': 'scope created', 'scope_id': scope_data['id'].hex}
-    else:
-        log(f'user is not an admin: {user_id.hex=}; {api_key=}')
-        return 400, {'msg': 'permission denied'}
+def add_scope(user_id: uuid.UUID, actor_id: uuid.UUID, mode: Mode) -> None:
+    scope_data = {'id': uuid.uuid4(), 'user_id': user_id, 'actor_id': actor_id, 'mode': mode.name,
+                  'created_at': now(), 'updated_at': now()}
+    add_entity_to_db(Scope(**scope_data))
 
 
 def check_user_if_valid(user_id: uuid.UUID) -> bool:
@@ -107,127 +99,99 @@ def check_user_if_valid(user_id: uuid.UUID) -> bool:
     return eval_ts_list(valid_rows)
 
 
-def set_state(actor_id_list: List[str], api_key: str) -> Tuple[int, dict]:
-    if not isinstance(actor_id_list, list):
-        log(f'malformed actors list: {actor_id_list}')
-        return 404, {'msg': 'malformed actors list'}
-
-    # get user id from api key
-    user_id = get_user_id_from_api_key(api_key)
-    if user_id is None:
-        log(f'api key not found: {api_key}')
-        return 403, {'msg': 'access denied'}
+def set_state(actor_id: uuid.UUID, user_id: uuid.UUID) -> None:
     # check if users valid status
     if not check_user_if_valid(user_id):
-        log(f'user currently not valid: {api_key=}, {user_id=}')
-        return 403, {'msg': 'access denied'}
+        raise PermissionError(f'user currently not valid: {user_id=}')
 
     # get scope of user
     scopes = get_scopes_from_user_id(user_id)
     if not scopes:
-        log(f'no scopes found for api_key "{api_key}" and user_id "{user_id}"')
-        return 403, {'msg': 'access denied'}
-    result = {}
-    for actor_id in actor_id_list:
-        try:
-            uuid.UUID(actor_id)
-        except ValueError:
-            result[actor_id] = (401, {'msg': 'malformed uuid string'})
-            continue
+        raise PermissionError(f'no scopes found for user_id "{user_id}"')
 
-        if [s for s in scopes if s[1] == uuid.UUID(actor_id) and s[2] == Mode.write]:
-            set_actor_state(actor_id, start=now(), end=now() + datetime.timedelta(seconds=10))
-            result[actor_id] = (200, {'msg': 'success'})
+    if [s for s in scopes if s[1] == actor_id and s[2] == Mode.write]:
+        set_actor_state(actor_id, start=now(), end=now() + datetime.timedelta(seconds=10))
+        return
+    else:
+        raise PermissionError(f'{actor_id=} scope not found')
+
+
+def check_if_scope_valid_from_user_and_actor(user_id: uuid.UUID, actor_id: uuid.UUID) -> Optional[bool]:
+    scopes = [s[1] for s in get_scopes_from_user_id(user_id) if s[1] == actor_id and s[2] == Mode.read]
+    if scopes:
+        states_list = get_state_from_actor_id(actor_id)
+        if eval_ts_list(states_list):
+            # state of actor is true
+            add_usage(actor_id)
+            return True
         else:
-            log(f'{api_key=}, {actor_id=} scope not found')
-            result[actor_id] = (403, {'msg': 'permission denied'})
-    return 200, result
+            # state of actor is false
+            return False
+    else:
+        return None
 
 
-def get_state(actor_id_list: List[str], api_key: str) \
-        -> Union[Tuple[int, Dict[str, str]], Tuple[int, Dict[str, Tuple[int, Dict[str, bool]]]]]:
-    if not isinstance(actor_id_list, list):
-        log(f'malformed actors list: {actor_id_list}')
-        return 404, {'msg': 'malformed actors list'}
+def get_state(actor_id: uuid.UUID, user_id: uuid.UUID) -> Optional[bool]:
+    if user_id is None:
+        raise KeyError(f'user id not found: {user_id}')
+    # check if users valid status
+    if not check_user_if_valid(user_id):
+        raise PermissionError(f'user currently not valid: {user_id=}')
 
     if check_and_increment():
         sanitize_state_db()
-    # get user id from api key
-    user_id = get_user_id_from_api_key(api_key)
-    if user_id is None:
-        log(f'api key not found: {api_key}')
-        return 403, {'msg': 'access denied'}
-    # check if users valid status
-    if not check_user_if_valid(user_id):
-        log(f'user currently not valid: {api_key=}, {user_id=}')
-        return 403, {'msg': 'access denied'}
 
     # get scope of user
-    scopes = get_scopes_from_user_id(user_id)
-
-    result = {}
-    for actor_id in actor_id_list:
-        try:
-            uuid.UUID(actor_id)
-        except ValueError:
-            result[actor_id] = (401, {'msg': 'malformed uuid string'})
-            continue
-
-        if [s for s in scopes if s[1] == uuid.UUID(actor_id) and s[2] == Mode.read]:
-            a = get_state_from_actor_id(uuid.UUID(actor_id))
-            if eval_ts_list(a):
-                # state of actor is true
-                result[actor_id] = (200, {'state': True})
-                add_usage(actor_id)
-            else:
-                # state of actor is false
-                result[actor_id] = (200, {'state': False})
-        else:
-            log(f'{api_key=}, {actor_id=} scope not found')
-            result[actor_id] = (403, {'msg': 'permission denied'})
-    return 200, result
+    return check_if_scope_valid_from_user_and_actor(user_id, actor_id)
 
 
-def add_usage(actor_id: str) -> None:
-    usage_data = {'id': uuid.uuid4(), 'actor_id': uuid.UUID(actor_id), 'timestamp': now(), 'created_at': now(),
+def add_usage(actor_id: uuid.UUID) -> None:
+    usage_data = {'id': uuid.uuid4(), 'actor_id': actor_id, 'timestamp': now(), 'created_at': now(),
                   'updated_at': now()}
+    add_entity_to_db(Usage(**usage_data))
+
+
+def add_valid(user_id: uuid.UUID, start: Optional[datetime.datetime] = None,
+              end: Optional[datetime.datetime] = None) -> None:
+    valid_data = {'id': uuid.uuid4(), 'user_id': user_id, 'start': start, 'end': end,
+                  'created_at': now(), 'updated_at': now()}
+    add_entity_to_db(Valid(**valid_data))
+
+
+def add_entity_to_db(entity: Union[User, Valid, Scope, Usage, State]) -> None:
     with current_app.app_context():
-        db.session.add(Usage(**usage_data))
+        db.session.add(entity)
         db.session.commit()
 
 
-def add_valid(api_key: str, user_id: uuid.UUID, start: Optional[datetime.datetime] = None,
-              end: Optional[datetime.datetime] = None) -> Tuple[int, dict]:
-    admin_id = get_user_id_from_api_key(api_key)
-
-    if get_role_from_user_id(admin_id) != Role.admin:
-        log(f'user is not an admin: {admin_id.hex=}; {api_key=}')
-        return 400, {'msg': 'permission denied'}
-    else:
-        valid_data = {'id': uuid.uuid4(), 'user_id': user_id, 'start': start, 'end': end,
-                      'created_at': now(),
-                      'updated_at': now()}
-        with current_app.app_context():
-            db.session.add(Valid(**valid_data))
-            db.session.commit()
-        return 200, {'msg': 'valid created', 'valid_id': valid_data['id'].hex}
-
-
-def add_user(api_key: str, name: str, role: Role, email: Optional[str] = None, password: Optional[str] = None) \
-        -> Tuple[int, dict]:
+def check_if_admin_by_api_key(api_key: str) -> bool:
     user_id = get_user_id_from_api_key(api_key)
-
-    if get_role_from_user_id(user_id) != Role.admin:
-        log(f'user is not an admin: {user_id.hex=}; {api_key=}')
-        return 400, {'msg': 'permission denied'}
+    if user_id is None:
+        return False
     else:
-        api_key_raw = generate_api_key()
-        user_data = {'id': uuid.uuid4(), 'name': name, 'email': email, 'password': password, 'role': Role.user,
-                     'api_key': simple_hash_str(api_key_raw)}
-        with current_app.app_context():
-            db.session.add(User(**user_data))
-            db.session.commit()
-        return 200, {'msg': 'user created', 'user_id': user_data['id'].hex, 'api_key': api_key_raw}
+        user_role = get_role_from_user_id(user_id)
+        return user_role == Role.admin
+
+
+def add_bultin_admin_user():
+    """ injects the main admin account into the user db if no admin user has been set"""
+    with current_app.app_context():
+        if not db.session.execute(select(User).filter_by(role=Role.admin, name='_builtin_admin')).scalar_one_or_none():
+            response = add_user('_builtin_admin', role=Role.admin)
+            admin_api_key = response['api_key']
+            print(f'user: "_builtin_admin", api-key: {admin_api_key}')
+            db.close_all_sessions()
+
+
+def add_user(name: str, role: Role, email: Optional[str] = None) -> Optional[Dict[str, str]]:
+    password = None
+    if not isinstance(role, Role):
+        raise TypeError(f'unknown role: {role}')
+    api_key_raw = generate_api_key()
+    user_data = {'id': uuid.uuid4(), 'name': name, 'email': email, 'password': password, 'role': role,
+                 'api_key': simple_hash_str(api_key_raw)}
+    add_entity_to_db(User(**user_data))
+    return {'id': user_data['id'].hex, 'api_key': api_key_raw, 'password': password}
 
 
 def sanitize_state_db() -> None:
@@ -246,10 +210,10 @@ def log(msg: str):
     print(msg)
 
 
-def set_actor_state(actor_id: str, start: Optional[datetime.datetime],
+def set_actor_state(actor_id: uuid.UUID, start: Optional[datetime.datetime],
                     end: Optional[datetime.datetime]) -> None:
     assert (end - start) < datetime.timedelta(minutes=1)
-    new_state = State(**{'user_id': uuid.UUID(actor_id), 'begin': start, 'end': end})
+    new_state = State(**{'user_id': actor_id, 'begin': start, 'end': end})
     with current_app.app_context():
         db.session.add(new_state)
         db.session.commit()

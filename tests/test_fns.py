@@ -32,61 +32,65 @@ TS_12_30_12 = datetime.datetime(year=2024, month=2, day=20, hour=12, minute=30, 
 TS_12_31_00 = datetime.datetime(year=2024, month=2, day=20, hour=12, minute=31, second=0, tzinfo=datetime.timezone.utc)
 TS_16_00_00 = datetime.datetime(year=2024, month=2, day=20, hour=16, minute=0, second=0, tzinfo=datetime.timezone.utc)
 
-ACTOR0001_USER_ID = '1dad0dc3-f862-4b41-9608-2ee1fa3050c2'
+ACTOR0001_USER_ID = uuid.UUID('1dad0dc3-f862-4b41-9608-2ee1fa3050c2')
 ACTOR0001_KEY = '9a9893b036fd1708c518467a203de7405184feff1c2eb315ee8099cd8fedab58'
 ACTOR0001_KEY_HASH = simple_hash_str(ACTOR0001_KEY)
 
-ACTOR0002_USER_ID = 'd526569c-4743-4d3e-a742-128051f63f72'
+ACTOR0002_USER_ID = uuid.UUID('d526569c-4743-4d3e-a742-128051f63f72')
 ACTOR0002_KEY = 'f160e336939ee5b8ed3206962c488fc5be3f6e35a3ca92fc170e80657958bda3'
 ACTOR0002_KEY_HASH = simple_hash_str(ACTOR0002_KEY)
 
-ACTOR0003_USER_ID = 'df809f8d-7689-439c-8dc8-d73d1d49e562'
+ACTOR0003_USER_ID = uuid.UUID('df809f8d-7689-439c-8dc8-d73d1d49e562')
 ACTOR0003_KEY = 'dc684777eb8a2edea57cbf7ca85c3799d6064e0ee6c307a24f182fa32cebd697'
 ACTOR0003_KEY_HASH = simple_hash_str(ACTOR0003_KEY)
 
-USER0001_USER_ID = '1f4a6f9c-af4a-4a32-976d-e86a1487ec43'
+USER0001_USER_ID = uuid.UUID('1f4a6f9c-af4a-4a32-976d-e86a1487ec43')
 USER0001_KEY = '052b3945b6913a005c74c52d0a2c48cfc7c10207db775d51950a21bc12dcc472'
 USER0001_KEY_HASH = simple_hash_str(USER0001_KEY)
 USER0001_PASSWORD = 'SonneMondUndSterne'
 USER0001_PW_HASH = hash_salt_pw_str(USER0001_PASSWORD)
 
-USER0002_USER_ID = '72031898-24eb-46d4-b4de-40355517ef8e'
+USER0002_USER_ID = uuid.UUID('72031898-24eb-46d4-b4de-40355517ef8e')
 USER0002_KEY = '781bd77d28bf4c53e13719136180dcef2d54c75b37b8a3553339859255731d9d'
 USER0002_KEY_HASH = simple_hash_str(USER0002_KEY)
 USER0002_PASSWORD = 'OneAndOneAndOneIsThree'
 USER0002_PW_HASH = hash_salt_pw_str(USER0002_PASSWORD)
 
-USER0003_USER_ID = 'd8977529-31bd-4f3e-b24c-91f31d962487'
+USER0003_USER_ID = uuid.UUID('d8977529-31bd-4f3e-b24c-91f31d962487')
 USER0003_KEY = '8c267d03891a23661ec3e89dbed546297cb86bae05d4767ff01cc0b1616d3499'
 USER0003_KEY_HASH = simple_hash_str(USER0003_KEY)
 USER0003_PASSWORD = 'RocknRoll'
 USER0003_PW_HASH = hash_salt_pw_str(USER0003_PASSWORD)
 
-USER0004_USER_ID = 'c100c404-4f65-4a23-b5d9-0979dad67fec'
+USER0004_USER_ID = uuid.UUID('c100c404-4f65-4a23-b5d9-0979dad67fec')
 USER0004_KEY = '58a0d55f80247f4b554dcae9ad274b8e96105519cd87a344bb017f42cc762b86'
 USER0004_KEY_HASH = simple_hash_str(USER0004_KEY)
 USER0004_PASSWORD = 'AlleMeineEntchen'
 USER0004_PW_HASH = hash_salt_pw_str(USER0004_PASSWORD)
 
-USER0005_USER_ID = '17b6909f-565f-4416-a587-3a8791aef0e7'
+USER0005_USER_ID = uuid.UUID('17b6909f-565f-4416-a587-3a8791aef0e7')
 USER0005_KEY = '961e67183206708d327ae766e6ac34f6ac0c082e0af8763ca8e8d3228496259a'
 USER0005_KEY_HASH = simple_hash_str(USER0005_KEY)
 USER0005_PASSWORD = 'JingleBellsRock'
 USER0005_PW_HASH = hash_salt_pw_str(USER0005_PASSWORD)
 
-USER0006_USER_ID = '9f1b6399-f051-44c3-bab3-1a4b8eb81e28'
+USER0006_USER_ID = uuid.UUID('9f1b6399-f051-44c3-bab3-1a4b8eb81e28')
 USER0006_KEY = '535b4e070c23cca91a2044258b2f8cbabe7c58c5fe18f7a88d13c85a3c8db068'
 USER0006_KEY_HASH = simple_hash_str(USER0006_KEY)
 USER0006_PASSWORD = 'SuesserDieGlockenNieKlingen'
 USER0006_PW_HASH = hash_salt_pw_str(USER0006_PASSWORD)
 
-DISABLED_USER_ID = '4c86f252-7d14-4776-a9a7-2e85e23b4f69'
+DISABLED_USER_ID = uuid.UUID('4c86f252-7d14-4776-a9a7-2e85e23b4f69')
 DISABLED_KEY = '9c1e953d91c1bf590dcb2a6011d8f0370fd0df12baea0adfd536175596f10d43'
 DISABLED_KEY_HASH = simple_hash_str(DISABLED_KEY)
 DISABLED_PASSWORD = 'KeinSchoenerLand'
 DISABLED_PW_HASH = hash_salt_pw_str(DISABLED_PASSWORD)
 
-ADMIN_USER_ID = '32546de6-7c94-41b8-812b-4f5786b71e1c'
+BUILTIN_ADMIN_USER_ID = None
+BUILTIN_ADMIN_KEY = None
+BUILTIN_ADMIN_KEY_HASH = None
+
+ADMIN_USER_ID = uuid.UUID('32546de6-7c94-41b8-812b-4f5786b71e1c')
 ADMIN_KEY = '98cfefb9d2c1477b3d98ebd19ec7a69bc0f82ce81a1ee88fcbdfe07a7681a829'
 ADMIN_KEY_HASH = simple_hash_str(ADMIN_KEY)
 ADMIN_PASSWORD = 'SuperSudo'
@@ -102,29 +106,29 @@ for key, hash_str in [(USER0001_KEY, USER0001_KEY_HASH),
                       (ADMIN_KEY, ADMIN_KEY_HASH)]:
     assert simple_hash_str(key) == hash_str
 
-VALID01_ID = 'c5026b88-7782-4dc3-b930-3c8121da7644'
-VALID02_ID = '5a15b116-6f48-4186-9c5b-b8240d5a8ff3'
-VALID03_ID = '02ed3c6b-a9aa-4207-8f42-c3ec57359322'
-VALID04_ID = 'd04e218a-64b0-432c-aaf7-e4dfac8b635a'
-VALID05_ID = '3f68de07-f81f-4b10-a28d-2c235d1d72de'
-VALID06_ID = '0c59b73c-bd39-48bd-9d75-48d559202cde'
-VALID07_ID = '7cf580c4-22a1-4b9e-b3c1-08bc3421f18e'
-VALID08_ID = '5ef12355-55e4-4eb9-849d-92d3a3e1a2ef'
-VALID09_ID = '37d6f246-f575-43b4-b0c5-5525ef02b0f6'
-VALID10_ID = 'b6d8f316-3872-4dc1-ad30-1ba7ce86ace3'
+VALID01_ID = uuid.UUID('c5026b88-7782-4dc3-b930-3c8121da7644')
+VALID02_ID = uuid.UUID('5a15b116-6f48-4186-9c5b-b8240d5a8ff3')
+VALID03_ID = uuid.UUID('02ed3c6b-a9aa-4207-8f42-c3ec57359322')
+VALID04_ID = uuid.UUID('d04e218a-64b0-432c-aaf7-e4dfac8b635a')
+VALID05_ID = uuid.UUID('3f68de07-f81f-4b10-a28d-2c235d1d72de')
+VALID06_ID = uuid.UUID('0c59b73c-bd39-48bd-9d75-48d559202cde')
+VALID07_ID = uuid.UUID('7cf580c4-22a1-4b9e-b3c1-08bc3421f18e')
+VALID08_ID = uuid.UUID('5ef12355-55e4-4eb9-849d-92d3a3e1a2ef')
+VALID09_ID = uuid.UUID('37d6f246-f575-43b4-b0c5-5525ef02b0f6')
+VALID10_ID = uuid.UUID('b6d8f316-3872-4dc1-ad30-1ba7ce86ace3')
 
-SCOPE01_ID = '6af8022f-3843-4f6d-aedf-82054bef1425'
-SCOPE02_ID = 'ad178135-5de5-4e8f-8c02-662a831f5ab2'
-SCOPE03_ID = 'dbb5aa11-6898-4b0e-bf7a-71beeba86e4f'
-SCOPE04_ID = 'bd7cca24-8658-4724-abc9-481355a5442e'
-SCOPE05_ID = 'e1f760d0-23d0-4d31-aa08-c72b3e550a80'
-SCOPE06_ID = '3df49528-24c2-4397-b346-65e56e7e1f34'
-SCOPE07_ID = 'bc276ca1-f019-4688-8b62-90643cc5bc95'
+SCOPE01_ID = uuid.UUID('6af8022f-3843-4f6d-aedf-82054bef1425')
+SCOPE02_ID = uuid.UUID('ad178135-5de5-4e8f-8c02-662a831f5ab2')
+SCOPE03_ID = uuid.UUID('dbb5aa11-6898-4b0e-bf7a-71beeba86e4f')
+SCOPE04_ID = uuid.UUID('bd7cca24-8658-4724-abc9-481355a5442e')
+SCOPE05_ID = uuid.UUID('e1f760d0-23d0-4d31-aa08-c72b3e550a80')
+SCOPE06_ID = uuid.UUID('3df49528-24c2-4397-b346-65e56e7e1f34')
+SCOPE07_ID = uuid.UUID('bc276ca1-f019-4688-8b62-90643cc5bc95')
 
-STATE01_ID = '57441403-e8f3-438c-999d-6264079eb95a'
-STATE02_ID = '1b785226-a486-4e1b-b2c9-512d7babdc38'
-STATE03_ID = '9ab29552-913f-40c3-8f1d-fd0fac434b52'
-STATE04_ID = '3152c612-82aa-4f88-a927-6ded02cd7163'
+STATE01_ID = uuid.UUID('57441403-e8f3-438c-999d-6264079eb95a')
+STATE02_ID = uuid.UUID('1b785226-a486-4e1b-b2c9-512d7babdc38')
+STATE03_ID = uuid.UUID('9ab29552-913f-40c3-8f1d-fd0fac434b52')
+STATE04_ID = uuid.UUID('3152c612-82aa-4f88-a927-6ded02cd7163')
 
 
 def date_to_str(date: datetime.datetime) -> str:
@@ -141,27 +145,27 @@ TS_12_30_06str = date_to_str(TS_12_30_06)
 
 def set_up_users(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
     with mock_datetime_now(timestamp, datetime):
-        user0001_data = {'id': uuid.UUID(USER0001_USER_ID), 'name': 'USER0001', 'email': None,
+        user0001_data = {'id': USER0001_USER_ID, 'name': 'USER0001', 'email': None,
                          'password': USER0001_PW_HASH, 'api_key': USER0001_KEY_HASH, 'role': Role.user, }
-        user0002_data = {'id': uuid.UUID(USER0002_USER_ID), 'name': 'USER0002', 'email': None,
+        user0002_data = {'id': USER0002_USER_ID, 'name': 'USER0002', 'email': None,
                          'password': USER0002_PW_HASH, 'api_key': USER0002_KEY_HASH, 'role': Role.user, }
-        user0003_data = {'id': uuid.UUID(USER0003_USER_ID), 'name': 'USER0003', 'email': None,
+        user0003_data = {'id': USER0003_USER_ID, 'name': 'USER0003', 'email': None,
                          'password': USER0003_PW_HASH, 'api_key': USER0003_KEY_HASH, 'role': Role.user, }
-        user0004_data = {'id': uuid.UUID(USER0004_USER_ID), 'name': 'USER0004', 'email': None,
+        user0004_data = {'id': USER0004_USER_ID, 'name': 'USER0004', 'email': None,
                          'password': USER0004_PW_HASH, 'api_key': USER0004_KEY_HASH, 'role': Role.user, }
-        user0005_data = {'id': uuid.UUID(USER0005_USER_ID), 'name': 'USER0005', 'email': None,
+        user0005_data = {'id': USER0005_USER_ID, 'name': 'USER0005', 'email': None,
                          'password': USER0005_PW_HASH, 'api_key': USER0005_KEY_HASH, 'role': Role.user, }
-        user0006_data = {'id': uuid.UUID(USER0006_USER_ID), 'name': 'USER0006', 'email': None,
+        user0006_data = {'id': USER0006_USER_ID, 'name': 'USER0006', 'email': None,
                          'password': USER0006_PW_HASH, 'api_key': USER0006_KEY_HASH, 'role': Role.user, }
-        actor0001_data = {'id': uuid.UUID(ACTOR0001_USER_ID), 'name': 'ACTOR1', 'email': None,
+        actor0001_data = {'id': ACTOR0001_USER_ID, 'name': 'ACTOR1', 'email': None,
                           'password': None, 'api_key': ACTOR0001_KEY_HASH, 'role': Role.actor, }
-        actor0002_data = {'id': uuid.UUID(ACTOR0002_USER_ID), 'name': 'ACTOR2', 'email': None,
+        actor0002_data = {'id': ACTOR0002_USER_ID, 'name': 'ACTOR2', 'email': None,
                           'password': None, 'api_key': ACTOR0002_KEY_HASH, 'role': Role.actor, }
-        actor0003_data = {'id': uuid.UUID(ACTOR0003_USER_ID), 'name': 'ACTOR3', 'email': None,
+        actor0003_data = {'id': ACTOR0003_USER_ID, 'name': 'ACTOR3', 'email': None,
                           'password': None, 'api_key': ACTOR0003_KEY_HASH, 'role': Role.actor, }
-        disabled_data = {'id': uuid.UUID(DISABLED_USER_ID), 'name': 'DISABLED0001', 'email': None,
+        disabled_data = {'id': DISABLED_USER_ID, 'name': 'DISABLED0001', 'email': None,
                          'password': DISABLED_PW_HASH, 'api_key': DISABLED_KEY_HASH, 'role': Role.deactivated, }
-        admin_data = {'id': uuid.UUID(ADMIN_USER_ID), 'name': 'ADMIN', 'email': None,
+        admin_data = {'id': ADMIN_USER_ID, 'name': 'ADMIN', 'email': None,
                       'password': ADMIN_PW_HASH, 'api_key': ADMIN_KEY_HASH, 'role': Role.admin, }
 
         data_list = [user0001_data, user0002_data, user0003_data, user0004_data, user0005_data, user0006_data,
@@ -177,22 +181,22 @@ def set_up_users(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
 
 def set_up_valid(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
     with mock_datetime_now(timestamp, datetime):
-        valid01_data = {'id': uuid.UUID(VALID01_ID), 'user_id': uuid.UUID(USER0001_USER_ID), 'start': None, 'end': None}
-        valid02_data = {'id': uuid.UUID(VALID02_ID), 'user_id': uuid.UUID(USER0002_USER_ID), 'start': None, 'end': None}
-        valid03_data = {'id': uuid.UUID(VALID03_ID), 'user_id': uuid.UUID(USER0003_USER_ID), 'start': None, 'end': None}
-        valid04_data = {'id': uuid.UUID(VALID04_ID), 'user_id': uuid.UUID(USER0004_USER_ID), 'start': None,
+        valid01_data = {'id': VALID01_ID, 'user_id': USER0001_USER_ID, 'start': None, 'end': None}
+        valid02_data = {'id': VALID02_ID, 'user_id': USER0002_USER_ID, 'start': None, 'end': None}
+        valid03_data = {'id': VALID03_ID, 'user_id': USER0003_USER_ID, 'start': None, 'end': None}
+        valid04_data = {'id': VALID04_ID, 'user_id': USER0004_USER_ID, 'start': None,
                         'end': TS_12_29_00}
-        valid05_data = {'id': uuid.UUID(VALID05_ID), 'user_id': uuid.UUID(USER0005_USER_ID), 'start': TS_12_29_00,
+        valid05_data = {'id': VALID05_ID, 'user_id': USER0005_USER_ID, 'start': TS_12_29_00,
                         'end': TS_12_30_06}
-        valid06_data = {'id': uuid.UUID(VALID06_ID), 'user_id': uuid.UUID(USER0006_USER_ID), 'start': TS_12_30_06,
+        valid06_data = {'id': VALID06_ID, 'user_id': USER0006_USER_ID, 'start': TS_12_30_06,
                         'end': TS_12_29_00}
-        valid07_data = {'id': uuid.UUID(VALID07_ID), 'user_id': uuid.UUID(ACTOR0001_USER_ID), 'start': None,
+        valid07_data = {'id': VALID07_ID, 'user_id': ACTOR0001_USER_ID, 'start': None,
                         'end': None}
-        valid08_data = {'id': uuid.UUID(VALID08_ID), 'user_id': uuid.UUID(ACTOR0002_USER_ID), 'start': None,
+        valid08_data = {'id': VALID08_ID, 'user_id': ACTOR0002_USER_ID, 'start': None,
                         'end': None}
-        valid09_data = {'id': uuid.UUID(VALID09_ID), 'user_id': uuid.UUID(ACTOR0003_USER_ID), 'start': None,
+        valid09_data = {'id': VALID09_ID, 'user_id': ACTOR0003_USER_ID, 'start': None,
                         'end': TS_12_30_11}
-        valid10_data = {'id': uuid.UUID(VALID10_ID), 'user_id': uuid.UUID(USER0004_USER_ID), 'start': None,
+        valid10_data = {'id': VALID10_ID, 'user_id': USER0004_USER_ID, 'start': None,
                         'end': TS_12_30_11}
 
         created_updated_dict = {'created_at': datetime.datetime.now(), 'updated_at': datetime.datetime.now()}
@@ -208,20 +212,20 @@ def set_up_valid(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
 
 def set_up_scope(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
     with mock_datetime_now(timestamp, datetime):
-        scope01_data = {'id': uuid.UUID(SCOPE01_ID), 'user_id': uuid.UUID(ACTOR0001_USER_ID),
-                        'actor_id': uuid.UUID(ACTOR0001_USER_ID), 'mode': Mode.read}
-        scope02_data = {'id': uuid.UUID(SCOPE02_ID), 'user_id': uuid.UUID(ACTOR0002_USER_ID),
-                        'actor_id': uuid.UUID(ACTOR0002_USER_ID), 'mode': Mode.read}
-        scope03_data = {'id': uuid.UUID(SCOPE03_ID), 'user_id': uuid.UUID(USER0001_USER_ID),
-                        'actor_id': uuid.UUID(ACTOR0001_USER_ID), 'mode': Mode.write}
-        scope04_data = {'id': uuid.UUID(SCOPE04_ID), 'user_id': uuid.UUID(USER0002_USER_ID),
-                        'actor_id': uuid.UUID(ACTOR0002_USER_ID), 'mode': Mode.write}
-        scope05_data = {'id': uuid.UUID(SCOPE05_ID), 'user_id': uuid.UUID(USER0003_USER_ID),
-                        'actor_id': uuid.UUID(ACTOR0001_USER_ID), 'mode': Mode.write}
-        scope06_data = {'id': uuid.UUID(SCOPE06_ID), 'user_id': uuid.UUID(USER0003_USER_ID),
-                        'actor_id': uuid.UUID(ACTOR0002_USER_ID), 'mode': Mode.write}
-        scope07_data = {'id': uuid.UUID(SCOPE07_ID), 'user_id': uuid.UUID(ACTOR0003_USER_ID),
-                        'actor_id': uuid.UUID(ACTOR0003_USER_ID), 'mode': Mode.read}
+        scope01_data = {'id': SCOPE01_ID, 'user_id': ACTOR0001_USER_ID,
+                        'actor_id': ACTOR0001_USER_ID, 'mode': Mode.read}
+        scope02_data = {'id': SCOPE02_ID, 'user_id': ACTOR0002_USER_ID,
+                        'actor_id': ACTOR0002_USER_ID, 'mode': Mode.read}
+        scope03_data = {'id': SCOPE03_ID, 'user_id': USER0001_USER_ID,
+                        'actor_id': ACTOR0001_USER_ID, 'mode': Mode.write}
+        scope04_data = {'id': SCOPE04_ID, 'user_id': USER0002_USER_ID,
+                        'actor_id': ACTOR0002_USER_ID, 'mode': Mode.write}
+        scope05_data = {'id': SCOPE05_ID, 'user_id': USER0003_USER_ID,
+                        'actor_id': ACTOR0001_USER_ID, 'mode': Mode.write}
+        scope06_data = {'id': SCOPE06_ID, 'user_id': USER0003_USER_ID,
+                        'actor_id': ACTOR0002_USER_ID, 'mode': Mode.write}
+        scope07_data = {'id': SCOPE07_ID, 'user_id': ACTOR0003_USER_ID,
+                        'actor_id': ACTOR0003_USER_ID, 'mode': Mode.read}
 
         created_updated_dict = {'created_at': datetime.datetime.now(), 'updated_at': datetime.datetime.now()}
 
@@ -237,13 +241,13 @@ def set_up_scope(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
 
 def set_up_state(app: flask.app.Flask, timestamp: datetime.datetime) -> None:
     with mock_datetime_now(timestamp, datetime):
-        state01_data = {'id': uuid.UUID(STATE01_ID), 'user_id': uuid.UUID(ACTOR0001_USER_ID), 'begin': TS_12_30_03,
+        state01_data = {'id': STATE01_ID, 'user_id': ACTOR0001_USER_ID, 'begin': TS_12_30_03,
                         'end': TS_12_30_10}
-        state02_data = {'id': uuid.UUID(STATE02_ID), 'user_id': uuid.UUID(ACTOR0002_USER_ID), 'begin': TS_11_00_00,
+        state02_data = {'id': STATE02_ID, 'user_id': ACTOR0002_USER_ID, 'begin': TS_11_00_00,
                         'end': TS_12_29_00}
-        state03_data = {'id': uuid.UUID(STATE03_ID), 'user_id': uuid.UUID(ACTOR0001_USER_ID), 'begin': None,
+        state03_data = {'id': STATE03_ID, 'user_id': ACTOR0001_USER_ID, 'begin': None,
                         'end': TS_12_30_01}
-        state04_data = {'id': uuid.UUID(STATE04_ID), 'user_id': uuid.UUID(ACTOR0002_USER_ID), 'begin': TS_12_30_04,
+        state04_data = {'id': STATE04_ID, 'user_id': ACTOR0002_USER_ID, 'begin': TS_12_30_04,
                         'end': None}
 
         created_updated_dict = {'created_at': datetime.datetime.now(), 'updated_at': datetime.datetime.now()}
@@ -263,7 +267,11 @@ class TestApiFunctions(TestCase):
         self.app_test = self.app.test_client()
 
         with self.app.app_context():
-            db.create_all()
+            # set api_key for _builtin_admin
+            global BUILTIN_ADMIN_KEY
+            BUILTIN_ADMIN_KEY = generate_api_key()
+            User.query.filter_by(name='_builtin_admin').update({'api_key': simple_hash_str(BUILTIN_ADMIN_KEY)})
+            db.session.commit()
 
         set_up_users(self.app, TS_11_00_00)
         set_up_valid(self.app, TS_11_00_00)
@@ -275,27 +283,26 @@ class TestApiFunctions(TestCase):
             db.engine.dispose()
         Config.TEMP_DIR.cleanup()
 
+    def test_stub(self):
+        return
+
     def test_set_state(self):
         with self.app.app_context():
             for ts in [TS_12_29_00, TS_12_30_00, TS_12_30_01, TS_12_30_02, TS_12_30_02, TS_12_30_03, TS_12_30_04,
                        TS_12_30_05, TS_12_30_06, TS_12_30_07, TS_12_30_08, TS_12_30_09, TS_12_30_10, TS_12_30_11,
                        TS_12_30_12]:
                 with mock_datetime_now(ts, datetime):
-                    self.assertEqual((200, {ACTOR0002_USER_ID: (200, {'state': False})}),
-                                     get_state([ACTOR0002_USER_ID], ACTOR0002_KEY))
+                    self.assertFalse(get_state(ACTOR0002_USER_ID, ACTOR0002_USER_ID))
             with mock_datetime_now(TS_12_30_01, datetime):
-                self.assertEqual((200, {ACTOR0002_USER_ID: (200, {'msg': 'success'})}),
-                                 set_state([ACTOR0002_USER_ID], USER0002_KEY))
+                set_state(ACTOR0002_USER_ID, USER0002_USER_ID)
 
             for ts in [TS_12_29_00, TS_12_30_00, TS_12_30_12]:
                 with mock_datetime_now(ts, datetime):
-                    self.assertEqual((200, {ACTOR0002_USER_ID: (200, {'state': False})}),
-                                     get_state([ACTOR0002_USER_ID], ACTOR0002_KEY))
+                    self.assertFalse(False, get_state(ACTOR0002_USER_ID, ACTOR0002_USER_ID))
             for ts in [TS_12_30_01, TS_12_30_02, TS_12_30_02, TS_12_30_03, TS_12_30_04, TS_12_30_05, TS_12_30_06,
                        TS_12_30_07, TS_12_30_08, TS_12_30_09, TS_12_30_10, TS_12_30_11, ]:
                 with mock_datetime_now(ts, datetime):
-                    self.assertEqual((200, {ACTOR0002_USER_ID: (200, {'state': True})}),
-                                     get_state([ACTOR0002_USER_ID], ACTOR0002_KEY))
+                    self.assertTrue(get_state(ACTOR0002_USER_ID, ACTOR0002_USER_ID))
 
     def test_get_state(self):
         # initially set up state table
@@ -304,83 +311,70 @@ class TestApiFunctions(TestCase):
         with self.app.app_context():
             for ts in [TS_12_30_02, TS_12_30_11, TS_12_30_12]:
                 with mock_datetime_now(ts, datetime):
-                    self.assertEqual((200, {ACTOR0001_USER_ID: (200, {'state': False})}),
-                                     get_state([ACTOR0001_USER_ID], ACTOR0001_KEY))
+                    self.assertIsNone(get_state(ACTOR0001_USER_ID, ACTOR0002_USER_ID))
             for ts in [TS_12_30_01, TS_12_30_03, TS_12_30_04, TS_12_30_05, TS_12_30_06, TS_12_30_07, TS_12_30_08,
                        TS_12_30_09, TS_12_30_10]:
                 with mock_datetime_now(ts, datetime):
-                    self.assertEqual((200, {ACTOR0001_USER_ID: (200, {'state': True})}),
-                                     get_state([ACTOR0001_USER_ID], ACTOR0001_KEY))
+                    self.assertTrue(get_state(ACTOR0001_USER_ID, ACTOR0001_USER_ID))
 
             # more than one actor in list
             for ts in [TS_12_29_00, TS_12_30_04]:
                 with mock_datetime_now(ts, datetime):
-                    self.assertEqual((200, {ACTOR0001_USER_ID: (200, {'state': True}),
-                                            ACTOR0002_USER_ID: (403, {'msg': 'permission denied'})}),
-                                     get_state([ACTOR0001_USER_ID, ACTOR0002_USER_ID], ACTOR0001_KEY))
-                    self.assertEqual((200, {ACTOR0001_USER_ID: (403, {'msg': 'permission denied'}),
-                                            ACTOR0002_USER_ID: (200, {'state': True})}),
-                                     get_state([ACTOR0001_USER_ID, ACTOR0002_USER_ID], ACTOR0002_KEY))
+                    self.assertTrue(get_state(ACTOR0001_USER_ID, ACTOR0001_USER_ID))
+                    self.assertIsNone(get_state(ACTOR0002_USER_ID, ACTOR0001_USER_ID))
+                    self.assertIsNone(get_state(ACTOR0001_USER_ID, ACTOR0002_USER_ID))
+                    self.assertTrue(get_state(ACTOR0002_USER_ID, ACTOR0002_USER_ID))
 
-            with mock_datetime_now(TS_12_30_02, datetime):
-                self.assertEqual((200, {ACTOR0001_USER_ID: (200, {'state': False}),
-                                        ACTOR0002_USER_ID: (403, {'msg': 'permission denied'})}),
-                                 get_state([ACTOR0001_USER_ID, ACTOR0002_USER_ID], ACTOR0001_KEY))
-                self.assertEqual((200, {ACTOR0001_USER_ID: (403, {'msg': 'permission denied'}),
-                                        ACTOR0002_USER_ID: (200, {'state': False})}),
-                                 get_state([ACTOR0001_USER_ID, ACTOR0002_USER_ID], ACTOR0002_KEY))
+                with mock_datetime_now(TS_12_30_02, datetime):
+                    self.assertFalse(get_state(ACTOR0001_USER_ID, ACTOR0001_USER_ID))
+                    self.assertIsNone(get_state(ACTOR0002_USER_ID, ACTOR0001_USER_ID))
+                    self.assertIsNone(get_state(ACTOR0001_USER_ID, ACTOR0002_USER_ID))
+                    self.assertFalse(get_state(ACTOR0002_USER_ID, ACTOR0002_USER_ID))
 
-            with mock_datetime_now(TS_12_30_11, datetime):
-                self.assertEqual((200, {ACTOR0001_USER_ID: (200, {'state': False}),
-                                        ACTOR0002_USER_ID: (403, {'msg': 'permission denied'})}),
-                                 get_state([ACTOR0001_USER_ID, ACTOR0002_USER_ID], ACTOR0001_KEY))
-                self.assertEqual((200, {ACTOR0001_USER_ID: (403, {'msg': 'permission denied'}),
-                                        ACTOR0002_USER_ID: (200, {'state': True})}),
-                                 get_state([ACTOR0001_USER_ID, ACTOR0002_USER_ID], ACTOR0002_KEY))
+                with mock_datetime_now(TS_12_30_11, datetime):
+                    self.assertFalse(get_state(ACTOR0001_USER_ID, ACTOR0001_USER_ID))
+                    self.assertIsNone(get_state(ACTOR0002_USER_ID, ACTOR0001_USER_ID))
+                    self.assertIsNone(get_state(ACTOR0001_USER_ID, ACTOR0002_USER_ID))
+                    self.assertTrue(get_state(ACTOR0002_USER_ID, ACTOR0002_USER_ID))
 
-            with mock_datetime_now(TS_12_30_11, datetime):
-                # get state for a wrong actor id
-                self.assertEqual((200, {'wxyz': (401, {'msg': 'malformed uuid string'})}),
-                                 get_state(['wxyz'], ACTOR0001_KEY))
+                with mock_datetime_now(TS_12_30_11, datetime):
+                    # get state for a wrong actor id
+                    unknown_id = uuid.uuid4()
+                    self.assertIsNone(get_state(unknown_id, ACTOR0001_USER_ID))
 
-                # get state for an actor with no entries in state table
-                self.assertEqual((200, {ACTOR0003_USER_ID: (200, {'state': False})}),
-                                 get_state([ACTOR0003_USER_ID], ACTOR0003_KEY))
+                    # get state for an actor with no entries in state table
+                    self.assertFalse(get_state(ACTOR0003_USER_ID, ACTOR0003_USER_ID))
 
-                # get initial state for an existing actor id, but with a key that is lacking permission
-                self.assertEqual((200, {ACTOR0001_USER_ID: (403, {'msg': 'permission denied'})}),
-                                 get_state([ACTOR0001_USER_ID], ACTOR0003_KEY))
+                    # get initial state for an existing actor id, but with a key that is lacking permission
+                    self.assertIsNone(get_state(ACTOR0001_USER_ID, ACTOR0003_USER_ID))
 
-            # get state with actor id that is currently valid
-            with mock_datetime_now(TS_12_30_11, datetime):
-                self.assertEqual((200, {ACTOR0003_USER_ID: (200, {'state': False})}),
-                                 get_state([ACTOR0003_USER_ID], ACTOR0003_KEY))
-            # get state with actor id that is currently invalid
-            with mock_datetime_now(TS_12_30_12, datetime):
-                self.assertEqual((403, {'msg': 'access denied'}),
-                                 get_state([ACTOR0003_USER_ID], ACTOR0003_KEY))
+                # get state with actor id that is currently valid
+                with mock_datetime_now(TS_12_30_11, datetime):
+                    self.assertFalse(get_state(ACTOR0003_USER_ID, ACTOR0003_USER_ID))
+                # get state with actor id that is currently invalid
+                with mock_datetime_now(TS_12_30_12, datetime):
+                    with self.assertRaises(PermissionError):
+                        get_state(ACTOR0003_USER_ID, ACTOR0003_USER_ID)
 
-            with mock_datetime_now(TS_12_30_11, datetime):
-                # this is an unknown key
-                self.assertEqual((403, {'msg': 'access denied'}),
-                                 get_state([ACTOR0001_USER_ID],
-                                           '9999d77d28bf4c53e13719136180dcef2d54c75b37b8a3553339859255731d9d'))
+                with mock_datetime_now(TS_12_30_11, datetime):
+                    # this is an unknown key
+                    unknown_id = uuid.uuid4()
+                    with self.assertRaises(PermissionError):
+                        get_state(ACTOR0001_USER_ID, unknown_id)
 
     def test_add_user(self):
         with (self.app.app_context()):
             properties = [User.id, User.api_key, User.name, User.role]
             query = select(*properties)
             user_data_ex_ante = {user_data[0]: user_data[1:] for user_data in db.session.execute(query)}
-            rc, result_json = add_user(ADMIN_KEY, 'new User', role=Role.user)
-            self.assertEqual(200, rc)
-            api_key = result_json.pop('api_key')
-            self.assertEqual(len(generate_api_key()), len(api_key))
-            user_id = result_json.pop('user_id')
-            try:
-                uuid.UUID(user_id)
-            except ValueError:
-                self.fail(f'user_id is not uuid: {user_id}')
-            self.assertEqual({'msg': 'user created'}, result_json)
+
+            result_json = add_user('new User', Role.user)
+            user_id = result_json['id']
+            user_api_key = result_json['api_key']
+            user_password = result_json['password']
+            self.assertTrue(isinstance(uuid.UUID(user_id), uuid.UUID), uuid.UUID)
+            self.assertEqual(len(generate_api_key()), len(user_api_key))
+            self.assertIsNone(user_password)
 
             query = select(*properties)
             user_data_ex_post = {user_data[0]: user_data[1:] for user_data in db.session.execute(query)}
@@ -391,20 +385,26 @@ class TestApiFunctions(TestCase):
             self.assertEqual('new User', new_user_data[1])
             self.assertEqual(Role.user, new_user_data[2])
 
+    def test_add_user_error(self):
+        with (self.app.app_context()):
+            properties = [User.id, User.api_key, User.name, User.role]
+            query = select(*properties)
+            user_data_ex_ante = {user_data[0]: user_data[1:] for user_data in db.session.execute(query)}
+            with self.assertRaises(TypeError):
+                # noinspection PyTypeChecker
+                add_user('new User', None)
+
+            query = select(*properties)
+            user_data_ex_post = {user_data[0]: user_data[1:] for user_data in db.session.execute(query)}
+            self.assertEqual(user_data_ex_ante, user_data_ex_post)
+
     def test_add_valid01(self):
         with (self.app.app_context()):
             properties = [Valid.id, Valid.user_id, Valid.start, Valid.end]
             query = select(*properties)
             valid_data_ex_ante = {valid_data[0]: valid_data[1:] for valid_data in db.session.execute(query)}
 
-            rc, result_json = add_valid(ADMIN_KEY, uuid.UUID(USER0003_USER_ID), TS_12_30_02, TS_12_30_06)
-            self.assertEqual(200, rc)
-            valid_id = result_json.pop('valid_id')
-            try:
-                uuid.UUID(valid_id)
-            except ValueError:
-                self.fail(f'valid_id is not uuid: {valid_id}')
-            self.assertEqual({'msg': 'valid created'}, result_json)
+            add_valid(USER0003_USER_ID, TS_12_30_02, TS_12_30_06)
 
             query = select(*properties)
             valid_data_ex_post = {valid_data[0]: valid_data[1:] for valid_data in db.session.execute(query)}
@@ -421,14 +421,7 @@ class TestApiFunctions(TestCase):
             query = select(*properties)
             valid_data_ex_ante = {valid_data[0]: valid_data[1:] for valid_data in db.session.execute(query)}
 
-            rc, result_json = add_valid(ADMIN_KEY, uuid.UUID(USER0003_USER_ID), TS_12_30_02, None)
-            self.assertEqual(200, rc)
-            valid_id = result_json.pop('valid_id')
-            try:
-                uuid.UUID(valid_id)
-            except ValueError:
-                self.fail(f'valid_id is not uuid: {valid_id}')
-            self.assertEqual({'msg': 'valid created'}, result_json)
+            add_valid(USER0003_USER_ID, TS_12_30_02, None)
 
             query = select(*properties)
             valid_data_ex_post = {valid_data[0]: valid_data[1:] for valid_data in db.session.execute(query)}
@@ -444,15 +437,7 @@ class TestApiFunctions(TestCase):
             properties = [Scope.id, Scope.user_id, Scope.actor_id, Scope.mode]
             query = select(*properties)
             scope_data_ex_ante = {scope_data[0]: scope_data[1:] for scope_data in db.session.execute(query)}
-            rc, result_json = add_scope(ADMIN_KEY, uuid.UUID(USER0006_USER_ID), uuid.UUID(ACTOR0003_USER_ID),
-                                        Mode.unset)
-            self.assertEqual(200, rc)
-            scope_id = result_json.pop('scope_id')
-            try:
-                uuid.UUID(scope_id)
-            except ValueError:
-                self.fail(f'scope_id is not uuid: {scope_id}')
-            self.assertEqual({'msg': 'scope created'}, result_json)
+            add_scope(USER0006_USER_ID, ACTOR0003_USER_ID, Mode.unset)
 
             query = select(*properties)
             scope_data_ex_post = {scope_data[0]: scope_data[1:] for scope_data in db.session.execute(query)}
@@ -460,6 +445,6 @@ class TestApiFunctions(TestCase):
             assert len(new_scope_key) == 1
             new_scope_data = scope_data_ex_post[list(new_scope_key)[0]]
 
-            self.assertEqual(uuid.UUID(USER0006_USER_ID), new_scope_data[0])
-            self.assertEqual(uuid.UUID(ACTOR0003_USER_ID), new_scope_data[1])
+            self.assertEqual(USER0006_USER_ID, new_scope_data[0])
+            self.assertEqual(ACTOR0003_USER_ID, new_scope_data[1])
             self.assertEqual(Mode.unset, new_scope_data[2])

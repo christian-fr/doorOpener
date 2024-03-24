@@ -4,13 +4,15 @@ import os
 import waitress
 from flask import Flask, request
 
-from app.models.user import User
+from app.api.util import add_entity_to_db, add_bultin_admin_user
+from app.models.user import User, Role
 from app.models.scope import Scope
 from app.models.state import State
 from app.models.valid import Valid
 from app.models.usage import Usage
 
 from app.extensions import db
+from app.util.util import generate_api_key
 from config import Config
 
 logging.basicConfig(filename='app.log', encoding='utf-8', level=logging.INFO)
@@ -42,10 +44,10 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
-
+        add_bultin_admin_user()
     return app
 
 
 if __name__ == '__main__':
-    waitress.serve(create_app(config_class=Config), host="0.0.0.0", port=int(os.getenv("SERVICE_PORT")))
+    waitress.serve(create_app(config_class=Config), host="127.0.0.1", port=int(os.getenv("SERVICE_PORT")))
     # create_app(config_class=Config).run()
