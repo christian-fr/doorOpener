@@ -1,5 +1,6 @@
 import datetime
 import json
+import traceback
 import uuid
 from typing import Optional
 
@@ -178,6 +179,8 @@ def api_add_scope():
             return json_response(404, 'mode unknown')
         if not check_if_admin_by_api_key(api_key):
             return json_response(403, 'invalid api key')
-
-        add_scope(uuid.UUID(user_id), uuid.UUID(actor_id), mode)
+        try:
+            add_scope(uuid.UUID(user_id), uuid.UUID(actor_id), mode)
+        except ValueError as e:
+            return json_response(400, 'badly formed uuid string')
         return json_response(200, 'success')

@@ -48,6 +48,11 @@ def create_app(config_class=Config):
     return app
 
 
+def main():
+    print("waitress")
+    waitress.serve(create_app(config_class=Config), host="0.0.0.0",
+                   port=int(os.getenv("SERVICE_PORT")) if os.getenv("SERVICE_PORT") is not None else 5055)
+
+
 if __name__ == '__main__':
-    waitress.serve(create_app(config_class=Config), host="127.0.0.1", port=int(os.getenv("SERVICE_PORT")))
-    # create_app(config_class=Config).run()
+    main()
