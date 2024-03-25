@@ -283,9 +283,6 @@ class TestApiFunctions(TestCase):
             db.engine.dispose()
         Config.TEMP_DIR.cleanup()
 
-    def test_stub(self):
-        return
-
     def test_set_state(self):
         with self.app.app_context():
             for ts in [TS_12_29_00, TS_12_30_00, TS_12_30_01, TS_12_30_02, TS_12_30_02, TS_12_30_03, TS_12_30_04,
