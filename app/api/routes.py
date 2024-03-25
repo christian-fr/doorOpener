@@ -111,7 +111,7 @@ def api_add_user():
         try:
             role = Role[request.args.get('role')]
         except KeyError:
-            log(f'unknown role: {request.args.get('role')}')
+            log(f"unknown role: {request.args.get('role')}")
             return json_response(404, 'role unknown')
         if check_if_admin_by_api_key(request.args.get('api-key')):
             result = add_user(request.args.get('name'), role)
