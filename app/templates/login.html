@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='main.css') }}">
+</head>
+<body>
+{% if msg is not none %}
+<span class="error">
+    {{ msg }}
+</span>
+{% endif %}
+<form action="/login" method="POST">
+    <label class="login"> Password:
+        <input type="password" class="login-field login" value="" placeholder="password" name="password">
+        <input type="submit" value="Log in" class="btn login btn-primary btn-large btn-block">
+         <input type="hidden" id="api-key" name="api-key" value="{{ api_key }}">
+         <input type="hidden" id="actor-id" name="actor-id" value="{{ actor_id }}">
+    </label>
+</form>
+</body>
+</html>

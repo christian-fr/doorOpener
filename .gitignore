@@ -1,0 +1,6 @@
+/.idea/
+/.venv/
+*.log
+*.sqlite
+sh/server/.env_server
+
