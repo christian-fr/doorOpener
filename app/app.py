@@ -19,7 +19,13 @@ logging.basicConfig(filename='app.log', encoding='utf-8', level=logging.INFO)
 
 
 def create_app(config_class=Config):
+    assert config_class.SECRET_KEY is not None, "SECRET_KEY env variable not set"
+
     app = Flask(__name__, template_folder='templates')
+
+    assert config_class.SECRET_KEY != "<SECRET_KEY>", ('secret key not set, default value in '
+                                                       '/etc/doorOpener/.env_server found!')
+
     app.config.from_object(config_class)
 
     @app.before_request

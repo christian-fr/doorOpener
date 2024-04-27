@@ -1,9 +1,6 @@
 #!/bin/bash
-
+FLASK_APP=app
+set -a
 source /etc/doorOpener/.env_server
-pwd
-export FLASK_APP=app
-export SERVICE_PORT=5050
-echo "$SERVICE_PORT"
-# flask run
+set +a
 python3 -m "app.app"

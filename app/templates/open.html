@@ -11,33 +11,13 @@
     {{ msg }}
 </span>
 {% endif %}
-<form action="{{ api_url }}" method="GET" class="form open">
+<form action="{{ api_url }}" method="POST" class="form open">
     <label>
         <input type="submit" value="open" class="btn btn-primary btn-large btn-block btn-open open">
         <input type="hidden" id="api-key" name="api-key" value="{{ api_key }}">
         <input type="hidden" id="actor-id" name="actor-id" value="{{ actor_id }}">
     </label>
     <script>
-        // Define the API URL
-        // const apiUrl = {{ api_url }};
-
-        // Make a GET request
-        {#fetch(apiUrl)#}
-        {#  .then(response => {#}
-        {#    if (!response.ok) {#}
-        {#      throw new Error('Network response was not ok');#}
-        {#    }#}
-        {#    return response.json();#}
-        {#  })#}
-        {#  .then(data => {#}
-        {#    console.log(data);#}
-        {#  })#}
-        {#  .catch(error => {#}
-        {#    console.error('Error:', error);#}
-        {#  });#}
-
-
-
     </script>
 </form>
 </body>

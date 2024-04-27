@@ -5,6 +5,7 @@ import uuid
 from typing import Optional
 
 from flask import request
+from werkzeug.exceptions import UnsupportedMediaType
 
 from app.api.func import get_state, set_state, log, add_user, add_scope, add_valid, check_if_admin_by_api_key, \
     get_user_id_from_api_key, get_role_from_user_id, health_check_actor, regenerate_api_key
@@ -24,34 +25,72 @@ def index_get():
     )
 
 
-@bp.route('/setState', methods=['GET'])
+@bp.route('/setState', methods=['POST'])
 def set_door_state():
-    if request.args.get('api-key') is None:
-        log(f'key not found')
-        return Response(
-            response=json.dumps({'msg': 'no key provided'}),
-            status=403,
-            mimetype='application/json'
-        )
-    elif request.args.get('actor-id') is None:
-        return Response(
-            response=json.dumps({'msg': 'no actor id provided'}),
-            status=403,
-            mimetype='application/json'
-        )
-    else:
-        user_id = get_user_id_from_api_key(request.args.get('api-key'))
-        if user_id is None:
-            return response_permission_error()
+    try:
+        if request.json != {}:
+            api_key = request.json.get('api-key')
+            actor_id = request.json.get('actor-id')
+            if api_key is None:
+                log(f'key not found')
+                return Response(
+                    response=json.dumps({'msg': 'no key provided'}),
+                    status=403,
+                    mimetype='application/json'
+                )
+            elif actor_id is None:
+                return Response(
+                    response=json.dumps({'msg': 'no actor id provided'}),
+                    status=403,
+                    mimetype='application/json'
+                )
+            user_id = get_user_id_from_api_key(request.json.get('api-key'))
         else:
-            try:
-                set_state(uuid.UUID(request.args.get('actor-id')), user_id)
-                return response_success()
+            api_key = request.form.get('api-key')
+            actor_id = request.form.get('actor-id')
+            if api_key is None:
+                log(f'key not found')
+                return Response(
+                    response=json.dumps({'msg': 'no key provided'}),
+                    status=403,
+                    mimetype='application/json'
+                )
+            elif actor_id is None:
+                return Response(
+                    response=json.dumps({'msg': 'no actor id provided'}),
+                    status=403,
+                    mimetype='application/json'
+                )
+            user_id = get_user_id_from_api_key(request.form.get('api-key'))
+    except UnsupportedMediaType:
+        api_key = request.form.get('api-key')
+        actor_id = request.form.get('actor-id')
+        if api_key is None:
+            log(f'key not found')
+            return Response(
+                response=json.dumps({'msg': 'no key provided'}),
+                status=403,
+                mimetype='application/json'
+            )
+        elif actor_id is None:
+            return Response(
+                response=json.dumps({'msg': 'no actor id provided'}),
+                status=403,
+                mimetype='application/json'
+            )
+        user_id = get_user_id_from_api_key(request.form.get('api-key'))
 
-            except ValueError:
-                return response_input_error()
-            except PermissionError:
-                return response_permission_error()
+    if user_id is None:
+        return response_permission_error()
+    else:
+        try:
+            set_state(uuid.UUID(actor_id), user_id)
+            return response_success()
+
+        except ValueError:
+            return response_input_error()
+        except PermissionError:
+            return response_permission_error()
 
 
 @bp.route('/getState', methods=['GET'])

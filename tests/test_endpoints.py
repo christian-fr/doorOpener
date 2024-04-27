@@ -1,5 +1,6 @@
 import datetime
 import json
+import secrets
 import uuid
 
 from unittest import TestCase
@@ -27,7 +28,9 @@ BUILTIN_ADMIN_KEY = None
 
 class TestApiEndpoints(TestCase):
     def setUp(self):
-        self.app = create_app(config_class=Config.get_cls())
+        config = Config.get_cls()
+        config.SECRET_KEY = secrets.token_hex()
+        self.app = create_app(config_class=config)
         self.app_test = self.app.test_client()
 
         with self.app.app_context():
@@ -58,8 +61,8 @@ class TestApiEndpoints(TestCase):
                 self.assertEqual({'state': False}, response.json)
 
         with mock_datetime_now(TS_12_30_01, datetime):
-            query_string = {'api-key': USER0002_KEY, 'actor-id': ACTOR0002_USER_ID}
-            response = self.app_test.get('/api/setState', query_string=query_string, follow_redirects=True)
+            data = {'api-key': USER0002_KEY, 'actor-id': ACTOR0002_USER_ID}
+            response = self.app_test.post('/api/setState', data=data, follow_redirects=True)
             self.assertEqual(200, response.status_code)
             self.assertEqual(response_success().json, response.json)
 
